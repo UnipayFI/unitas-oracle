@@ -1,0 +1,1 @@
+DevRPC=https://api.devnet.solana.com
