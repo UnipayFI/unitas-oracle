@@ -21,6 +21,7 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 add-account = "yarn run ts-node app/add-account.ts"
+remove-account = "yarn run ts-node app/remove-account.ts"
 add-operator = "yarn run ts-node app/add-operator.ts"
 create-lookup-table = "yarn run ts-node app/create-lookup-table.ts"
 init-config = "yarn run ts-node app/init-config.ts"

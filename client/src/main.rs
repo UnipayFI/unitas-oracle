@@ -20,8 +20,9 @@ const MINT: &str = "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4";
 const ORACLE: &str = "UTPY8UzTNZ9GwNbGTtAa5FVxV2upW3ucRX8DN4tnw7K";
 const USDU_CONFIG: &str = "om3x6puF7Beqxc1WYPCYBWwUZMZ77hYk7AsMEbi8Fez";
 const JLP_ACCOUNTS: &[&str] = &[
-    "JLP_ACCOUNT_1",
-    "JLP_ACCOUNT_2",
+    "BC4MGsLxETeusWSJ17dnkWDS9eH23qT1yxwSjspvfVoB",
+    "3T8Tzwt4CvMJDbGH3Q9BVEyWofwA8cpjj7JRdGjktZXc",
+    "7aQWrYapnwLoPfGDa4ZobMk7xCcsx45hfz4EPgv9Jyj3",
 ];
 
 #[derive(Parser, Debug)]
