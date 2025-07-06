@@ -17,7 +17,7 @@ const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
 // Account addresses
 const LOOKUP_TABLE: &str = "2CiufXdpMR7pyUMe6GSKEaSCiYaGoZCmV5Utw5xTDagc";
 const MINT: &str = "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4";
-const ORACLE: &str = "UTPY8UzTNZ9GwNbGTtAa5FVxV2upW3ucRX8DN4tnw7K";
+const ORACLE: &str = "2TTGSRSezqFzeLUH8JwRUbtN66XLLaymfYsWRTMjfiMw";
 const USDU_CONFIG: &str = "om3x6puF7Beqxc1WYPCYBWwUZMZ77hYk7AsMEbi8Fez";
 const JLP_ACCOUNTS: &[&str] = &[
     "BC4MGsLxETeusWSJ17dnkWDS9eH23qT1yxwSjspvfVoB",
