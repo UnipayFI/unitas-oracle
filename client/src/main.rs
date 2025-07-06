@@ -14,32 +14,21 @@ use anchor_spl::token::TokenAccount;
 
 const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
 
+// Account addresses
+const LOOKUP_TABLE: &str = "2CiufXdpMR7pyUMe6GSKEaSCiYaGoZCmV5Utw5xTDagc";
+const MINT: &str = "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4";
+const ORACLE: &str = "UTPY8UzTNZ9GwNbGTtAa5FVxV2upW3ucRX8DN4tnw7K";
+const USDU_CONFIG: &str = "om3x6puF7Beqxc1WYPCYBWwUZMZ77hYk7AsMEbi8Fez";
+const JLP_ACCOUNTS: &[&str] = &[
+    "JLP_ACCOUNT_1",
+    "JLP_ACCOUNT_2",
+];
+
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// RPC URL
     #[arg(short, long, default_value = "https://api.mainnet-beta.solana.com")]
     url: String,
-
-    /// Unitas Asset Lookup Table account
-    #[arg(short, long)]
-    lookup_table: String,
-
-    /// JLP mint account
-    #[arg(short, long)]
-    mint: String,
-
-    /// JLP Pyth oracle account
-    #[arg(short, long)]
-    oracle: String,
-
-    /// USDU config account
-    #[arg(short, long)]
-    usdu_config: String,
-
-    /// JLP token accounts (comma separated)
-    #[arg(short, long)]
-    accounts: String,
 }
 
 #[derive(BorshDeserialize, Debug)]
@@ -108,26 +97,24 @@ pub fn ten_pow(exponent: impl Into<u32>) -> u128 {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    
     let rpc_client = RpcClient::new_with_commitment(args.url, CommitmentConfig::confirmed());
     
-    let lookup_table_pubkey = Pubkey::from_str(&args.lookup_table)?;
+    let lookup_table_pubkey = Pubkey::from_str(LOOKUP_TABLE)?;
     let lookup_table_acc = rpc_client.get_account(&lookup_table_pubkey)?;
     let lookup_table = AssetLookupTable::deserialize(&mut &lookup_table_acc.data[..])?;
     
-    let mint_pubkey = Pubkey::from_str(&args.mint)?;
+    let mint_pubkey = Pubkey::from_str(MINT)?;
     let mint_acc = rpc_client.get_account(&mint_pubkey)?;
     
-    let oracle_pubkey = Pubkey::from_str(&args.oracle)?;
+    let oracle_pubkey = Pubkey::from_str(ORACLE)?;
     let oracle_acc = rpc_client.get_account(&oracle_pubkey)?;
     
-    let usdu_config_pubkey = Pubkey::from_str(&args.usdu_config)?;
+    let usdu_config_pubkey = Pubkey::from_str(USDU_CONFIG)?;
     let usdu_config_acc = rpc_client.get_account(&usdu_config_pubkey)?;
     let usdu_config = UsduConfig::deserialize(&mut &usdu_config_acc.data[..])?;
     
-    // 获取 JLP token accounts
-    let jlp_accounts: Vec<Account> = args.accounts
-        .split(',')
+    let jlp_accounts: Vec<Account> = JLP_ACCOUNTS
+        .iter()
         .map(|addr| {
             let pubkey = Pubkey::from_str(addr).unwrap();
             rpc_client.get_account(&pubkey).unwrap()
