@@ -6,6 +6,8 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.0",
+    "@pythnetwork/hermes-client": "^2.0.0",
+    "@pythnetwork/pyth-solana-receiver": "^0.10.1",
     "@solana/web3.js": "^1.98.2",
     "@types/node": "^24.0.10",
     "@types/yargs": "^17.0.33",

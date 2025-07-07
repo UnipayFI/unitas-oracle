@@ -7,9 +7,8 @@ use anchor_client::solana_sdk::{
 use borsh::BorshDeserialize;
 use anyhow::{Result, anyhow};
 use clap::Parser;
-use pyth_sdk_solana::state::{load_price_account, GenericPriceAccount};
 use solana_client::rpc_client::RpcClient;
-use solana_sdk::{account::Account, clock::Clock};
+use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 use anchor_spl::token::TokenAccount;
 
 const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
@@ -23,7 +22,17 @@ const JLP_ACCOUNTS: &[&str] = &[
     "BC4MGsLxETeusWSJ17dnkWDS9eH23qT1yxwSjspvfVoB",
     "3T8Tzwt4CvMJDbGH3Q9BVEyWofwA8cpjj7JRdGjktZXc",
     "7aQWrYapnwLoPfGDa4ZobMk7xCcsx45hfz4EPgv9Jyj3",
+    "HwS956w2Whc77WgQRPxBxoo7Yd8ThJM4BjXh7vjBuTsH",
 ];
+
+fn account_deserialize<T: BorshDeserialize>(data: &[u8]) -> Result<T> {
+    if data.len() < 8 {
+        return Err(anyhow!("Account data too short"));
+    }
+    let mut account_data: &[u8] = &data[8..];
+    T::deserialize(&mut account_data)
+        .map_err(|e| anyhow!("Failed to deserialize account: {:?}", e))
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -102,55 +111,75 @@ fn main() -> Result<()> {
     
     let lookup_table_pubkey = Pubkey::from_str(LOOKUP_TABLE)?;
     let lookup_table_acc = rpc_client.get_account(&lookup_table_pubkey)?;
-    let lookup_table = AssetLookupTable::deserialize(&mut &lookup_table_acc.data[..])?;
+    let lookup_table = account_deserialize::<AssetLookupTable>(&lookup_table_acc.data)
+        .map_err(|e| anyhow!("Failed to deserialize lookup table: {:?}, data length: {}", e, lookup_table_acc.data.len()))?;
     
     let mint_pubkey = Pubkey::from_str(MINT)?;
-    let mint_acc = rpc_client.get_account(&mint_pubkey)?;
     
     let oracle_pubkey = Pubkey::from_str(ORACLE)?;
     let oracle_acc = rpc_client.get_account(&oracle_pubkey)?;
     
     let usdu_config_pubkey = Pubkey::from_str(USDU_CONFIG)?;
     let usdu_config_acc = rpc_client.get_account(&usdu_config_pubkey)?;
-    let usdu_config = UsduConfig::deserialize(&mut &usdu_config_acc.data[..])?;
+    let usdu_config = account_deserialize::<UsduConfig>(&usdu_config_acc.data)
+        .map_err(|e| anyhow!("Failed to deserialize USDU config: {:?}, data length: {}", e, usdu_config_acc.data.len()))?;
     
-    let jlp_accounts: Vec<Account> = JLP_ACCOUNTS
+    let jlp_accounts: Vec<TokenAccount> = JLP_ACCOUNTS
         .iter()
         .map(|addr| {
             let pubkey = Pubkey::from_str(addr).unwrap();
-            rpc_client.get_account(&pubkey).unwrap()
+            let account = rpc_client.get_account(&pubkey).unwrap();
+            TokenAccount::try_deserialize(&mut &account.data[..])
+                .map_err(|e| anyhow!("Failed to deserialize token account {}: {:?}", addr, e))
+                .unwrap()
         })
         .collect();
     
-    check_accounts(&lookup_table, &mint_acc, &jlp_accounts)?;
+    check_accounts(&lookup_table, &mint_pubkey, &jlp_accounts)?;
     
-    let price_feed: &GenericPriceAccount<1, i64> = load_price_account(&oracle_acc.data)
-        .map_err(|e| anyhow!("Failed to load price feed: {:?}", e))?;
-    let price = price_feed.agg.price;
+    let price_account: PriceUpdateV2 = PriceUpdateV2::try_deserialize(&mut &oracle_acc.data[..])
+        .map_err(|e| anyhow!("Failed to deserialize price account: {:?}", e))?;
+    let price = price_account.price_message.price;
     let price_value: u128 = price.abs() as u128;
-    let price_decimals: u8 = price_feed.expo.abs() as u8;
+    let price_decimals: u8 = price_account.price_message.exponent.abs() as u8;
     let token_decimals = lookup_table.decimals;
+    println!("Raw price: {}", price_value);
+    println!("Actual price: {}", price_value as f64 / ten_pow(price_decimals) as f64);
+    println!("Price decimals: {}", price_decimals);
+    println!("Token decimals: {}", token_decimals);
     
     // 计算总价值
     let mut total_value: u128 = lookup_table.aum_usd;
-    for jlp_acc in &jlp_accounts {
-        let token_account = TokenAccount::try_deserialize(&mut &jlp_acc.data[..])?;
+    println!("Initial AUM: {}", total_value);
+    for (i, token_account) in jlp_accounts.iter().enumerate() {
+        println!("\nProcessing JLP account {}", JLP_ACCOUNTS[i]);
         let token_amount: u128 = token_account.amount.into();
+        println!("Raw token amount: {}", token_amount);
+        println!("Actual token amount: {}", token_amount as f64 / ten_pow(token_decimals) as f64);
         
-        let token_amount_usd = if price_decimals + token_decimals > AUM_VALUE_SCALE_DECIMALS {
-            let diff = price_decimals + token_decimals - AUM_VALUE_SCALE_DECIMALS;
-            let nom = price_value * token_amount;
-            let denom = ten_pow(u32::from(diff));
-            nom / denom
+        // 直接计算实际值
+        let raw_value = price_value * token_amount;
+        println!("Raw multiplication result: {}", raw_value);
+        
+        // 调整到目标精度 (AUM_VALUE_SCALE_DECIMALS)
+        let total_decimals = price_decimals + token_decimals;
+        let token_amount_usd = if total_decimals > AUM_VALUE_SCALE_DECIMALS {
+            let diff = total_decimals - AUM_VALUE_SCALE_DECIMALS;
+            raw_value / ten_pow(diff)
         } else {
-            let diff = AUM_VALUE_SCALE_DECIMALS - (price_decimals + token_decimals);
-            price_value * token_amount * ten_pow(u32::from(diff))
+            let diff = AUM_VALUE_SCALE_DECIMALS - total_decimals;
+            raw_value * ten_pow(diff)
         };
+        
+        println!("Token USD value: {}", token_amount_usd);
+        println!("Token USD value (human readable): {}", token_amount_usd as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
         total_value += token_amount_usd;
     }
     
-    println!("Total AUM value: {}", total_value);
+    println!("\nTotal AUM value: {}", total_value);
+    println!("Total AUM value (human readable): {}", total_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
     println!("USDU total supply: {}", usdu_config.total_supply);
+    println!("USDU total supply (human readable): {}", usdu_config.total_supply as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
     println!("USDU price: {}", total_value as f64 / usdu_config.total_supply as f64);
     
     Ok(())
@@ -158,15 +187,15 @@ fn main() -> Result<()> {
 
 fn check_accounts(
     lookup_table: &AssetLookupTable,
-    mint_acc: &Account,
-    jlp_accounts: &[Account],
+    mint_pubkey: &Pubkey,
+    jlp_accounts: &[TokenAccount],
 ) -> Result<()> {
     if jlp_accounts.len() != lookup_table.accounts.len() {
         return Err(anyhow!("Account length mismatch"));
     }
 
-    if lookup_table.mint != mint_acc.owner {
-        return Err(anyhow!("Mint account mismatch"));
+    if lookup_table.mint != *mint_pubkey {
+        return Err(anyhow!("Mint account address mismatch"));
     }
 
     let mut expected_jlp_pks = lookup_table.accounts.clone();
