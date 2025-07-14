@@ -150,6 +150,7 @@ fn main() -> Result<()> {
     
     // 计算总价值
     let mut total_value: u128 = lookup_table.aum_usd;
+    let mut accrue_value: u128 = 0;
     println!("Initial AUM: {}", total_value);
     for (i, token_account) in jlp_accounts.iter().enumerate() {
         println!("\nProcessing JLP account {}", JLP_ACCOUNTS[i]);
@@ -173,9 +174,13 @@ fn main() -> Result<()> {
         
         println!("Token USD value: {}", token_amount_usd);
         println!("Token USD value (human readable): {}", token_amount_usd as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
-        total_value += token_amount_usd;
+        accrue_value += token_amount_usd;
     }
+
+    println!("Accrue value: {}", accrue_value);
+    println!("Accrue value (human readable): {}", accrue_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
     
+    total_value += accrue_value;
     println!("\nTotal AUM value: {}", total_value);
     println!("Total AUM value (human readable): {}", total_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
     println!("USDU total supply: {}", usdu_config.total_supply);
