@@ -11,6 +11,7 @@ pub struct AssetLookupTable {
     pub aum_usd: u128,
     pub mint: Pubkey,
     pub decimals: u8,
+    pub last_updated_timestamp: i64,
     pub accounts: Vec<Pubkey>,
 }
 
@@ -20,6 +21,7 @@ impl AssetLookupTable {
         16 + // aum_usd
         32 + // mint
         1 + // decimals
+        8 + // last_updated_timestamp
         4 + // vec len
         32 * MAX_ACCOUNTS_PER_TABLE; // max accounts
 

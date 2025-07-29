@@ -47,6 +47,7 @@ pub fn process_create_asset_lookup_table(
         aum_usd: 0,
         mint,
         decimals,
+        last_updated_timestamp: 0,
         accounts: Vec::with_capacity(MAX_ACCOUNTS_PER_TABLE),
     });
     emit!(AssetLookupTableCreated {

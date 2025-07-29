@@ -14,15 +14,15 @@ use anchor_spl::token::TokenAccount;
 const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
 
 // Account addresses
-const LOOKUP_TABLE: &str = "2CiufXdpMR7pyUMe6GSKEaSCiYaGoZCmV5Utw5xTDagc";
+const LOOKUP_TABLE: &str = "DbdBYqBWyU9zywRSXT32frPuL3AhpaF2PQK7H42TpahS";
 const MINT: &str = "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4";
 const ORACLE: &str = "2TTGSRSezqFzeLUH8JwRUbtN66XLLaymfYsWRTMjfiMw";
 const USDU_CONFIG: &str = "om3x6puF7Beqxc1WYPCYBWwUZMZ77hYk7AsMEbi8Fez";
 const JLP_ACCOUNTS: &[&str] = &[
-    "BC4MGsLxETeusWSJ17dnkWDS9eH23qT1yxwSjspvfVoB",
-    "3T8Tzwt4CvMJDbGH3Q9BVEyWofwA8cpjj7JRdGjktZXc",
-    "7aQWrYapnwLoPfGDa4ZobMk7xCcsx45hfz4EPgv9Jyj3",
-    "HwS956w2Whc77WgQRPxBxoo7Yd8ThJM4BjXh7vjBuTsH",
+    "BC4MGsLxETeusWSJ17dnkWDS9eH23qT1yxwSjspvfVoB", // owner: 5ZbLoA6DSnXoDeU7jsdmmkua4X1ugHUFYzbByzrbJDST
+    "3T8Tzwt4CvMJDbGH3Q9BVEyWofwA8cpjj7JRdGjktZXc", // owner: 8Qo4oKTM5jiZEAKzhBLKwTKjCJrDHsUUux5K5DaQDxLR
+    "7aQWrYapnwLoPfGDa4ZobMk7xCcsx45hfz4EPgv9Jyj3", // owner: AR2ZCCyB5nXb7TesCz2pcCWbQsH8TAwixetDRrm3Z9wr
+    "HwS956w2Whc77WgQRPxBxoo7Yd8ThJM4BjXh7vjBuTsH", // owner: EfMD9jVUnAkYeXv9fMaqC8rD4mc8dyVypFaR6DY9aHPs
 ];
 
 fn account_deserialize<T: BorshDeserialize>(data: &[u8]) -> Result<T> {
@@ -47,6 +47,7 @@ pub struct AssetLookupTable {
     pub aum_usd: u128,
     pub mint: Pubkey,
     pub decimals: u8,
+    pub last_updated_timestamp: i64,
     pub accounts: Vec<Pubkey>,
 }
 
@@ -113,6 +114,8 @@ fn main() -> Result<()> {
     let lookup_table_acc = rpc_client.get_account(&lookup_table_pubkey)?;
     let lookup_table = account_deserialize::<AssetLookupTable>(&lookup_table_acc.data)
         .map_err(|e| anyhow!("Failed to deserialize lookup table: {:?}, data length: {}", e, lookup_table_acc.data.len()))?;
+
+    println!("Lookup table last updated timestamp: {}", lookup_table.last_updated_timestamp);
     
     let mint_pubkey = Pubkey::from_str(MINT)?;
     

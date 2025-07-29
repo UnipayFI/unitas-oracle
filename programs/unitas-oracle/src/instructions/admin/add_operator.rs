@@ -32,7 +32,6 @@ pub fn process_add_operator(ctx: Context<AddOperator>, user: Pubkey) -> Result<(
     let operator = Operator {
         config: ctx.accounts.config.key(),
         user,
-        last_updated_timestamp: Clock::get()?.unix_timestamp,
     };
     #[cfg(feature = "enable-log")]
     msg!(

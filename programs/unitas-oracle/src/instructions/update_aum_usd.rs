@@ -28,16 +28,18 @@ pub fn process_update_aum_usd(ctx: Context<UpdateAumUsd>, aum_usd: u128) -> Resu
             ctx.accounts.operator.user == ctx.accounts.user.key(),
             ErrorCode::InvalidOperator
         );
-        ctx.accounts.operator.last_updated_timestamp = Clock::get()?.unix_timestamp;
     } else {
         require!(
             ctx.accounts.config.is_admin(&ctx.accounts.user.key()),
             ErrorCode::InvalidAdmin
         );
     }
+    let last_updated_timestamp = Clock::get()?.unix_timestamp;
     ctx.accounts.asset_lookup_table.set_aum_usd(aum_usd);
+    ctx.accounts.asset_lookup_table.last_updated_timestamp = last_updated_timestamp;
     emit!(AumUsdUpdated {
         aum_usd,
+        last_updated_timestamp,
         lookup_table: ctx.accounts.asset_lookup_table.key(),
     });
     Ok(())

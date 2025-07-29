@@ -12,7 +12,6 @@ pub struct Config {
 pub struct Operator {
     pub config: Pubkey,
     pub user: Pubkey,
-    pub last_updated_timestamp: i64,
 }
 
 impl Config {

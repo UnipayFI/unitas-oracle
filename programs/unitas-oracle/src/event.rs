@@ -57,5 +57,6 @@ pub struct AccountRemoved {
 #[event]
 pub struct AumUsdUpdated {
     pub aum_usd: u128,
+    pub last_updated_timestamp: i64,
     pub lookup_table: Pubkey,
 }

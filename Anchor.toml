@@ -7,10 +7,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-unitas_oracle = "UTASjf79dZzYvgtcyNfeoNStogTkTtvAhTj6fiRz2pG"
+unitas_oracle = "UitaNV5y9H1FznxiG7GzohVNbmLdzff2hLnMaiM46YM"
 
 [programs.mainnet]
-unitas_oracle = "UTPY8UzTNZ9GwNbGTtAa5FVxV2upW3ucRX8DN4tnw7K"
+unitas_oracle = "UitaNV5y9H1FznxiG7GzohVNbmLdzff2hLnMaiM46YM"
 
 [registry]
 url = "https://api.apr.dev"
@@ -21,8 +21,8 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 add-account = "yarn run ts-node app/add-account.ts"
-remove-account = "yarn run ts-node app/remove-account.ts"
 add-operator = "yarn run ts-node app/add-operator.ts"
 create-lookup-table = "yarn run ts-node app/create-lookup-table.ts"
 init-config = "yarn run ts-node app/init-config.ts"
+remove-account = "yarn run ts-node app/remove-account.ts"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
