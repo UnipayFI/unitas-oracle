@@ -2,15 +2,13 @@ use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
 
-pub const MAX_ACCOUNTS_PER_TABLE: usize = 15;
+pub const MAX_ACCOUNTS_PER_TABLE: usize = 25;
 
 #[account]
 #[derive(Default)]
 pub struct AssetLookupTable {
     pub index: u8,
     pub aum_usd: u128,
-    pub mint: Pubkey,
-    pub decimals: u8,
     pub last_updated_timestamp: i64,
     pub accounts: Vec<Pubkey>,
 }
@@ -19,8 +17,6 @@ impl AssetLookupTable {
     pub const LEN: usize = 8 + // discriminator
         1 + // index
         16 + // aum_usd
-        32 + // mint
-        1 + // decimals
         8 + // last_updated_timestamp
         4 + // vec len
         32 * MAX_ACCOUNTS_PER_TABLE; // max accounts

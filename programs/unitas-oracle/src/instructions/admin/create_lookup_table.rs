@@ -30,23 +30,17 @@ pub struct CreateAssetLookupTable<'info> {
 pub fn process_create_asset_lookup_table(
     ctx: Context<CreateAssetLookupTable>,
     index: u8,
-    mint: Pubkey,
-    decimals: u8,
 ) -> Result<()> {
     #[cfg(feature = "enable-log")]
     msg!(
-        "create_asset_lookup_table: admin:{}, index:{}, mint:{}, decimals:{}, lookup_table:{}",
+        "create_asset_lookup_table: admin:{}, index:{}, lookup_table:{}",
         ctx.accounts.admin.key(),
         index,
-        mint,
-        decimals,
         ctx.accounts.asset_lookup_table.key()
     );
     ctx.accounts.asset_lookup_table.set_inner(AssetLookupTable {
         index,
         aum_usd: 0,
-        mint,
-        decimals,
         last_updated_timestamp: 0,
         accounts: Vec::with_capacity(MAX_ACCOUNTS_PER_TABLE),
     });
