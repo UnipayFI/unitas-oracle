@@ -17,13 +17,10 @@ const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
 const USDU_CONFIG: &str = "om3x6puF7Beqxc1WYPCYBWwUZMZ77hYk7AsMEbi8Fez";
 const LOOKUP_TABLE: &str = "3NyCBP95fAQoJudNdjVRQ5cqZRnkhk3yfG199FwXDnTt";
 
-const JLP_MINT: &str = "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4";
 const JLP_ORACLE: &str = "2TTGSRSezqFzeLUH8JwRUbtN66XLLaymfYsWRTMjfiMw";
-const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const USDC_ORACLE: &str = "Dpw1EAVrSB1ibxiDQyTAW6Zip3J4Btk2x4SgApQCeFbX";
 
 const USDC_ACCOUNT: &str = "8kF8Di1zRZZjR6E2Td6BkBAbbgnby1bm2UcFG1gRVBbm";
-const FUND_VAULT: &str = "EfMD9jVUnAkYeXv9fMaqC8rD4mc8dyVypFaR6DY9aHPs";
 
 const JLP_ACCOUNTS: &[&str] = &[
     "BC4MGsLxETeusWSJ17dnkWDS9eH23qT1yxwSjspvfVoB", // owner: 5ZbLoA6DSnXoDeU7jsdmmkua4X1ugHUFYzbByzrbJDST
