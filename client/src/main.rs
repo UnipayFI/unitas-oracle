@@ -27,6 +27,7 @@ const JLP_ACCOUNTS: &[&str] = &[
     "3T8Tzwt4CvMJDbGH3Q9BVEyWofwA8cpjj7JRdGjktZXc", // owner: 8Qo4oKTM5jiZEAKzhBLKwTKjCJrDHsUUux5K5DaQDxLR
     "7aQWrYapnwLoPfGDa4ZobMk7xCcsx45hfz4EPgv9Jyj3", // owner: AR2ZCCyB5nXb7TesCz2pcCWbQsH8TAwixetDRrm3Z9wr
     "HwS956w2Whc77WgQRPxBxoo7Yd8ThJM4BjXh7vjBuTsH", // owner: EfMD9jVUnAkYeXv9fMaqC8rD4mc8dyVypFaR6DY9aHPs
+    "GwGFZUwyW6ThY65YvvMrqaTZmwYozXTEM75EY9QhLddf", // owner: 3KGc9HPrLEsxsJ1d4kWCz5GcDykygjsRQtUUfLa7p5T1
 ];
 
 fn account_deserialize<T: BorshDeserialize>(data: &[u8]) -> Result<T> {
