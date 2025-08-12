@@ -10,7 +10,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("UytarnZWtNTW6JjC96XBm1BMNVJqMSoHwHTjXL91jEW");
+declare_id!("UyticRmp4omJ2mFNdwSAtykk1AQ7ceWSdijYT7zenJJ");
 
 #[program]
 pub mod unitas_oracle {
@@ -28,8 +28,11 @@ pub mod unitas_oracle {
         instructions::admin::process_remove_operator(ctx, user)
     }
 
-    pub fn create_asset_lookup_table(ctx: Context<CreateAssetLookupTable>, index: u8) -> Result<()> {
-        instructions::admin::process_create_asset_lookup_table(ctx, index)
+    pub fn create_asset_lookup_table(
+        ctx: Context<CreateAssetLookupTable>,
+        args: CreateAssetLookupTableArgs,
+    ) -> Result<()> {
+        instructions::admin::process_create_asset_lookup_table(ctx, args)
     }
 
     pub fn add_account(ctx: Context<AddAccount>, account: Pubkey) -> Result<()> {

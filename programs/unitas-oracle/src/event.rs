@@ -38,7 +38,6 @@ pub struct AdminTransferCompleted {
 /// Asset lookup table
 #[event]
 pub struct AssetLookupTableCreated {
-    pub index: u8,
     pub lookup_table: Pubkey,
 }
 

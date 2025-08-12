@@ -7,17 +7,26 @@ pub const MAX_ACCOUNTS_PER_TABLE: usize = 25;
 #[account]
 #[derive(Default)]
 pub struct AssetLookupTable {
-    pub index: u8,
     pub aum_usd: u128,
     pub last_updated_timestamp: i64,
+    pub jlp_oracle_account: Pubkey,
+    pub usdc_oracle_account: Pubkey,
+    pub usdc_mint: Pubkey,
+    pub jlp_mint: Pubkey,
+    pub usdu_config: Pubkey,
     pub accounts: Vec<Pubkey>,
 }
 
 impl AssetLookupTable {
+    // total size: 200 bytes
     pub const LEN: usize = 8 + // discriminator
-        1 + // index
         16 + // aum_usd
         8 + // last_updated_timestamp
+        32 + // jlp_oracle_account
+        32 + // usdc_oracle_account
+        32 + // usdc_mint
+        32 + // jlp_mint
+        32 + // usdu_config
         4 + // vec len
         32 * MAX_ACCOUNTS_PER_TABLE; // max accounts
 
