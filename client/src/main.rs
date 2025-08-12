@@ -222,6 +222,21 @@ fn check_accounts(
     Ok(())
 }
 
+fn check_all_pubkeys(lookup_table: &AssetLookupTable) -> Result<()> {
+    let jlp_oracle_pubkey = Pubkey::from_str(JLP_ORACLE)?;
+    let usdc_oracle_pubkey = Pubkey::from_str(USDC_ORACLE)?;
+    let usdc_mint_pubkey = Pubkey::from_str(USDC_MINT)?;
+    let jlp_mint_pubkey = Pubkey::from_str(JLP_MINT)?;
+    let usdu_config_pubkey = Pubkey::from_str(USDU_CONFIG)?;
+
+    assert_eq!(lookup_table.jlp_oracle_account, jlp_oracle_pubkey);
+    assert_eq!(lookup_table.usdc_oracle_account, usdc_oracle_pubkey);
+    assert_eq!(lookup_table.usdc_mint, usdc_mint_pubkey);
+    assert_eq!(lookup_table.jlp_mint, jlp_mint_pubkey);
+    assert_eq!(lookup_table.usdu_config, usdu_config_pubkey);
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
     let rpc_client = RpcClient::new_with_commitment(args.url, CommitmentConfig::confirmed());
@@ -232,12 +247,7 @@ fn main() -> Result<()> {
         .map_err(|e| anyhow!("Failed to deserialize lookup table: {:?}, data length: {}", e, lookup_table_acc.data.len()))?;
 
     println!("Lookup table last updated timestamp: {}", lookup_table.last_updated_timestamp);
-    
-    require_keys_eq!(lookup_table.jlp_oracle_account, JLP_ORACLE);
-    require_keys_eq!(lookup_table.usdc_oracle_account, USDC_ORACLE);
-    require_keys_eq!(lookup_table.usdc_mint, USDC_MINT);
-    require_keys_eq!(lookup_table.jlp_mint, JLP_MINT);
-    require_keys_eq!(lookup_table.usdu_config, USDU_CONFIG);
+    check_all_pubkeys(&lookup_table)?;
     
     let usdu_config_pubkey = Pubkey::from_str(USDU_CONFIG)?;
     let usdu_config_acc = rpc_client.get_account(&usdu_config_pubkey)?;
