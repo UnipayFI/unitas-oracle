@@ -15,13 +15,17 @@ const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
 
 // Account addresses
 const USDU_CONFIG: &str = "om3x6puF7Beqxc1WYPCYBWwUZMZ77hYk7AsMEbi8Fez";
-const LOOKUP_TABLE: &str = "3NyCBP95fAQoJudNdjVRQ5cqZRnkhk3yfG199FwXDnTt";
+const LOOKUP_TABLE: &str = "4rxVgQ4JCQP4EmiokG9S8WF546dAxszzt1mqgyEBEQFW";
 
 const JLP_ORACLE: &str = "2TTGSRSezqFzeLUH8JwRUbtN66XLLaymfYsWRTMjfiMw";
 const USDC_ORACLE: &str = "Dpw1EAVrSB1ibxiDQyTAW6Zip3J4Btk2x4SgApQCeFbX";
 
-const USDC_ACCOUNT: &str = "8kF8Di1zRZZjR6E2Td6BkBAbbgnby1bm2UcFG1gRVBbm";
+// Mint addresses
+const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const JLP_MINT: &str = "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4";
 
+// Token account addresses
+const USDC_ACCOUNT: &str = "8kF8Di1zRZZjR6E2Td6BkBAbbgnby1bm2UcFG1gRVBbm";
 const JLP_ACCOUNTS: &[&str] = &[
     "BC4MGsLxETeusWSJ17dnkWDS9eH23qT1yxwSjspvfVoB", // owner: 5ZbLoA6DSnXoDeU7jsdmmkua4X1ugHUFYzbByzrbJDST
     "3T8Tzwt4CvMJDbGH3Q9BVEyWofwA8cpjj7JRdGjktZXc", // owner: 8Qo4oKTM5jiZEAKzhBLKwTKjCJrDHsUUux5K5DaQDxLR
@@ -228,6 +232,12 @@ fn main() -> Result<()> {
         .map_err(|e| anyhow!("Failed to deserialize lookup table: {:?}, data length: {}", e, lookup_table_acc.data.len()))?;
 
     println!("Lookup table last updated timestamp: {}", lookup_table.last_updated_timestamp);
+    
+    require_keys_eq!(lookup_table.jlp_oracle_account, JLP_ORACLE);
+    require_keys_eq!(lookup_table.usdc_oracle_account, USDC_ORACLE);
+    require_keys_eq!(lookup_table.usdc_mint, USDC_MINT);
+    require_keys_eq!(lookup_table.jlp_mint, JLP_MINT);
+    require_keys_eq!(lookup_table.usdu_config, USDU_CONFIG);
     
     let usdu_config_pubkey = Pubkey::from_str(USDU_CONFIG)?;
     let usdu_config_acc = rpc_client.get_account(&usdu_config_pubkey)?;
