@@ -33,6 +33,7 @@ pub struct CreateAssetLookupTableArgs {
     pub usdc_mint: Pubkey,
     pub jlp_mint: Pubkey,
     pub usdu_config: Pubkey,
+    pub usdc_token_account_owner: Pubkey,
 }
 
 pub fn process_create_asset_lookup_table(
@@ -54,7 +55,8 @@ pub fn process_create_asset_lookup_table(
         usdc_mint: args.usdc_mint,
         jlp_mint: args.jlp_mint,
         usdu_config: args.usdu_config,
-        accounts: Vec::with_capacity(MAX_ACCOUNTS_PER_TABLE),
+        usdc_token_account_owner: args.usdc_token_account_owner,
+        jlp_token_account_owners: Vec::with_capacity(MAX_ACCOUNTS_PER_TABLE),
     });
     emit!(AssetLookupTableCreated {
         lookup_table: ctx.accounts.asset_lookup_table.key(),

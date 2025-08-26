@@ -14,11 +14,12 @@ pub struct AssetLookupTable {
     pub usdc_mint: Pubkey,
     pub jlp_mint: Pubkey,
     pub usdu_config: Pubkey,
-    pub accounts: Vec<Pubkey>,
+    pub usdc_token_account_owner: Pubkey,
+    pub jlp_token_account_owners: Vec<Pubkey>,
 }
 
 impl AssetLookupTable {
-    // total size: 200 bytes
+    // total size: 232 bytes
     pub const LEN: usize = 8 + // discriminator
         16 + // aum_usd
         8 + // last_updated_timestamp
@@ -27,28 +28,29 @@ impl AssetLookupTable {
         32 + // usdc_mint
         32 + // jlp_mint
         32 + // usdu_config
+        32 + // usdc_token_account_owner
         4 + // vec len
         32 * MAX_ACCOUNTS_PER_TABLE; // max accounts
 
-    pub fn add_account(&mut self, account: Pubkey) -> Result<()> {
-        require!(!self.is_contains(account), ErrorCode::AccountAlreadyAdded);
-        require!(self.accounts.len() < MAX_ACCOUNTS_PER_TABLE, ErrorCode::AccountLimitReached);
+    pub fn add_jlp_token_account_owner(&mut self, account: Pubkey) -> Result<()> {
+        require!(!self.is_jlp_token_account_owner_contains(account), ErrorCode::AccountAlreadyAdded);
+        require!(self.jlp_token_account_owners.len() < MAX_ACCOUNTS_PER_TABLE, ErrorCode::AccountLimitReached);
         
-        self.accounts.push(account);
+        self.jlp_token_account_owners.push(account);
         Ok(())
     }
 
-    pub fn remove_account(&mut self, account: Pubkey) -> Result<()> {
-        if let Some(index) = self.accounts.iter().position(|acc| *acc == account) {
-            self.accounts.remove(index);
+    pub fn remove_jlp_token_account_owner(&mut self, account: Pubkey) -> Result<()> {
+        if let Some(index) = self.jlp_token_account_owners.iter().position(|acc| *acc == account) {
+            self.jlp_token_account_owners.remove(index);
             Ok(())
         } else {
             Err(ErrorCode::InvalidAccount.into())
         }
     }
 
-    pub fn is_contains(&self, account: Pubkey) -> bool {
-        self.accounts.contains(&account)
+    pub fn is_jlp_token_account_owner_contains(&self, account: Pubkey) -> bool {
+        self.jlp_token_account_owners.contains(&account)
     }
 
     pub fn set_aum_usd(&mut self, aum_usd: u128) {

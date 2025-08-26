@@ -28,4 +28,5 @@ base64 = "0.21.0"
 bytemuck = { version = "1.23.0", features = ["derive"] }
 borsh = "1.5.7"
 spl-token = "8.0.0"
+spl-associated-token-account = "7.0.0"
 pyth-solana-receiver-sdk = "0.6.1"

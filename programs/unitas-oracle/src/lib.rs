@@ -10,7 +10,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("UyticRmp4omJ2mFNdwSAtykk1AQ7ceWSdijYT7zenJJ");
+declare_id!("Utyg8uYL8uZ6JQh6LBVZWSABB7Eq2hqNPGgkuneDcfE");
 
 #[program]
 pub mod unitas_oracle {
