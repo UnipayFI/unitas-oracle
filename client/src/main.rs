@@ -16,9 +16,9 @@ const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
 
 // Account addresses
 const USDU_CONFIG: &str = "om3x6puF7Beqxc1WYPCYBWwUZMZ77hYk7AsMEbi8Fez";
-const LOOKUP_TABLE: &str = "EckQZfk9n8g22Edmh2vcRGLHrvabfCZ63AVZe8jzxvMM";
+const LOOKUP_TABLE: &str = "GyC2PwMthX1vB3fSBEsRBBXiFyEKihNRD8KEdtbveCEb";
 
-const JLP_ORACLE: &str = "2TTGSRSezqF7Beqxc1WYPCYBWwUZMZ77hYk7AsMEbi8Fez";
+const JLP_ORACLE: &str = "2TTGSRSezqFzeLUH8JwRUbtN66XLLaymfYsWRTMjfiMw";
 const USDC_ORACLE: &str = "Dpw1EAVrSB1ibxiDQyTAW6Zip3J4Btk2x4SgApQCeFbX";
 
 // Mint addresses
@@ -50,8 +50,7 @@ pub struct AssetLookupTable {
     pub usdc_mint: Pubkey,
     pub jlp_mint: Pubkey,
     pub usdu_config: Pubkey,
-    pub usdc_token_account_owner: Pubkey,
-    pub jlp_token_account_owners: Vec<Pubkey>,
+    pub token_account_owners: Vec<Pubkey>,
 }
 
 #[derive(BorshDeserialize, Debug)]
@@ -111,7 +110,7 @@ pub fn ten_pow(exponent: impl Into<u32>) -> u128 {
 
 fn calculate_jlp_value(
     rpc_client: &RpcClient,
-    jlp_accounts: &[(Pubkey, TokenAccount)],
+    lookup_table: &AssetLookupTable,
 ) -> Result<u128> {
     let jlp_oracle_pubkey = Pubkey::from_str(JLP_ORACLE)?;
     let jlp_oracle_acc = rpc_client.get_account(&jlp_oracle_pubkey)?;
@@ -130,6 +129,28 @@ fn calculate_jlp_value(
     );
     println!("JLP price decimals: {}", jlp_price_decimals);
     println!("JLP token decimals: {}", jlp_token_decimals);
+
+    let jlp_accounts: Vec<(Pubkey, TokenAccount)> = lookup_table
+        .token_account_owners
+        .iter()
+        .filter_map(|owner| {
+            let pubkey = get_associated_token_address(owner, &lookup_table.jlp_mint);
+            match rpc_client.get_account(&pubkey) {
+                Ok(account) => {
+                    match TokenAccount::try_deserialize(&mut &account.data[..]) {
+                        Ok(token_account) => Some((pubkey, token_account)),
+                        Err(_) => {
+                            println!("Warning: Failed to deserialize JLP token account {}", pubkey);
+                            None
+                        }
+                    }
+                },
+                Err(_) => {
+                    None
+                }
+            }
+        })
+        .collect();
 
     let mut accrue_value: u128 = 0;
     for (jlp_token_account_pubkey, token_account) in jlp_accounts.iter() {
@@ -171,38 +192,65 @@ fn calculate_jlp_value(
 }
 
 fn calculate_usdc_value(rpc_client: &RpcClient, lookup_table: &AssetLookupTable) -> Result<u128> {
-    let usdc_token_account_pubkey = get_associated_token_address(
-        &lookup_table.usdc_token_account_owner,
-        &lookup_table.usdc_mint
-    );
-    let usdc_account = rpc_client.get_account(&usdc_token_account_pubkey)?;
-    let usdc_token_account = TokenAccount::try_deserialize(&mut &usdc_account.data[..])
-        .map_err(|e| anyhow!("Failed to deserialize token account {}: {:?}", usdc_token_account_pubkey, e))?;
-    let usdc_amount: u128 = usdc_token_account.amount.into();
     let usdc_oracle_pubkey = Pubkey::from_str(USDC_ORACLE)?;
     let usdc_oracle_acc = rpc_client.get_account(&usdc_oracle_pubkey)?;
-    let usdc_price_account: PriceUpdateV2 = PriceUpdateV2::try_deserialize(&mut &usdc_oracle_acc.data[..])
-        .map_err(|e| anyhow!("Failed to deserialize price account: {:?}", e))?;
+    let usdc_price_account: PriceUpdateV2 =
+        PriceUpdateV2::try_deserialize(&mut &usdc_oracle_acc.data[..])
+            .map_err(|e| anyhow!("Failed to deserialize price account: {:?}", e))?;
     let usdc_price = usdc_price_account.price_message.price;
     let usdc_price_value: u128 = usdc_price.abs() as u128;
     let usdc_price_decimals: u8 = usdc_price_account.price_message.exponent.abs() as u8;
     let usdc_token_decimals: u8 = 6;
-    println!("\nProcessing USDC account {}", usdc_token_account_pubkey);
-    println!("USDC raw token amount: {}", usdc_amount);
-    println!("USDC actual token amount: {}", usdc_amount as f64 / ten_pow(usdc_token_decimals) as f64);
-    println!("USDC raw price: {}", usdc_price_value);
-    let raw_value = usdc_price_value * usdc_amount;
-    let total_decimals = usdc_price_decimals + usdc_token_decimals;
-    let usdc_value = if total_decimals > AUM_VALUE_SCALE_DECIMALS {
-        let diff = total_decimals - AUM_VALUE_SCALE_DECIMALS;
-        raw_value / ten_pow(diff)
-    } else {
-        let diff = AUM_VALUE_SCALE_DECIMALS - total_decimals;
-        raw_value * ten_pow(diff)
-    };
-    println!("Usdc value: {}", usdc_value);
-    println!("Usdc value (human readable): {}", usdc_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
-    Ok(usdc_value)
+
+    let usdc_accounts: Vec<(Pubkey, TokenAccount)> = lookup_table
+        .token_account_owners
+        .iter()
+        .filter_map(|owner| {
+            let pubkey = get_associated_token_address(owner, &lookup_table.usdc_mint);
+            match rpc_client.get_account(&pubkey) {
+                Ok(account) => {
+                    match TokenAccount::try_deserialize(&mut &account.data[..]) {
+                        Ok(token_account) => Some((pubkey, token_account)),
+                        Err(_) => {
+                            println!("Warning: Failed to deserialize USDC token account {}", pubkey);
+                            None
+                        }
+                    }
+                },
+                Err(_) => {
+                    None
+                }
+            }
+        })
+        .collect();
+
+    let mut total_usdc_value: u128 = 0;
+    for (usdc_token_account_pubkey, usdc_token_account) in usdc_accounts.iter() {
+        let usdc_amount: u128 = usdc_token_account.amount.into();
+        println!("\nProcessing USDC account {}", usdc_token_account_pubkey);
+        println!("USDC raw token amount: {}", usdc_amount);
+        println!(
+            "USDC actual token amount: {}",
+            usdc_amount as f64 / ten_pow(usdc_token_decimals) as f64
+        );
+        println!("USDC raw price: {}", usdc_price_value);
+        let raw_value = usdc_price_value * usdc_amount;
+        let total_decimals = usdc_price_decimals + usdc_token_decimals;
+        let usdc_value = if total_decimals > AUM_VALUE_SCALE_DECIMALS {
+            let diff = total_decimals - AUM_VALUE_SCALE_DECIMALS;
+            raw_value / ten_pow(diff)
+        } else {
+            let diff = AUM_VALUE_SCALE_DECIMALS - total_decimals;
+            raw_value * ten_pow(diff)
+        };
+        println!("Usdc value: {}", usdc_value);
+        println!(
+            "Usdc value (human readable): {}",
+            usdc_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64
+        );
+        total_usdc_value += usdc_value;
+    }
+    Ok(total_usdc_value)
 }
 
 fn check_all_pubkeys(lookup_table: &AssetLookupTable) -> Result<()> {
@@ -237,29 +285,10 @@ fn main() -> Result<()> {
     let usdu_config = account_deserialize::<UsduConfig>(&usdu_config_acc.data)
         .map_err(|e| anyhow!("Failed to deserialize USDU config: {:?}, data length: {}", e, usdu_config_acc.data.len()))?;
     
-    let jlp_accounts: Vec<(Pubkey, TokenAccount)> = lookup_table
-        .jlp_token_account_owners
-        .iter()
-        .map(|owner| {
-            let pubkey = get_associated_token_address(owner, &lookup_table.jlp_mint);
-            let account = rpc_client.get_account(&pubkey).unwrap();
-            let token_account = TokenAccount::try_deserialize(&mut &account.data[..])
-                .map_err(|e| {
-                    anyhow!(
-                        "Failed to deserialize token account {}: {:?}",
-                        pubkey,
-                        e
-                    )
-                })
-                .unwrap();
-            (pubkey, token_account)
-        })
-        .collect();
-    
     let mut total_value: u128 = lookup_table.aum_usd;
     println!("Initial AUM: {}", total_value);
 
-    let jlp_accrue_value = calculate_jlp_value(&rpc_client, &jlp_accounts)?;
+    let jlp_accrue_value = calculate_jlp_value(&rpc_client, &lookup_table)?;
     total_value += jlp_accrue_value;
 
     let usdc_value = calculate_usdc_value(&rpc_client, &lookup_table)?;

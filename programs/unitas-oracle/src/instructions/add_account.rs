@@ -39,7 +39,7 @@ pub fn process_add_account(ctx: Context<AddAccount>, account: Pubkey) -> Result<
     }
     ctx.accounts
         .asset_lookup_table
-        .add_jlp_token_account_owner(account)?;
+        .add_token_account_owner(account)?;
     emit!(AccountAdded {
         account,
         lookup_table: ctx.accounts.asset_lookup_table.key()

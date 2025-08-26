@@ -39,7 +39,7 @@ pub fn process_remove_account(ctx: Context<RemoveAccount>, account: Pubkey) -> R
     }
     ctx.accounts
         .asset_lookup_table
-        .remove_jlp_token_account_owner(account)?;
+        .remove_token_account_owner(account)?;
     emit!(AccountRemoved {
         account,
         lookup_table: ctx.accounts.asset_lookup_table.key(),
