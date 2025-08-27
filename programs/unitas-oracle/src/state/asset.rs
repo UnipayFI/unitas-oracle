@@ -4,14 +4,19 @@ use anchor_lang::prelude::*;
 pub const MAX_ACCOUNTS_PER_ASSET: usize = 128;
 
 #[account(zero_copy)]
-#[repr(C, packed)]
+#[repr(C)]
 #[derive(Debug)]
 pub struct AssetLookupTable {
+    // 8-byte alignment
     pub asset_mint: Pubkey,
     pub oracle_account: Pubkey,
-    pub decimals: u8,
-    pub token_account_owners_len: u32,
     pub token_account_owners: [Pubkey; MAX_ACCOUNTS_PER_ASSET],
+    // 4-byte alignment
+    pub token_account_owners_len: u32,
+    // 1-byte alignment
+    pub decimals: u8,
+    // trailing padding
+    pub padding: [u8; 3],
 }
 
 impl AssetLookupTable {

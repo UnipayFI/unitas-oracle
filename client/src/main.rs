@@ -13,7 +13,7 @@ use std::str::FromStr;
 mod constants;
 
 const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
-const PROGRAM_ID: &str = "UtycozxZPRv91c2ibTA1pmvFoFqqVCAoZ1jxYSgArpM";
+const PROGRAM_ID: &str = "UtyfaKYGYeyb1bXEycSDJujbJguJHD6cYcrjnqDnNhq";
 
 fn account_deserialize<T: BorshDeserialize>(data: &[u8]) -> Result<T> {
     if data.len() < 8 {
@@ -34,9 +34,10 @@ struct Args {
 pub struct AssetLookupTable {
     pub asset_mint: Pubkey,
     pub oracle_account: Pubkey,
-    pub decimals: u8,
-    pub token_account_owners_len: u32,
     pub token_account_owners: [Pubkey; 128],
+    pub token_account_owners_len: u32,
+    pub decimals: u8,
+    pub padding: [u8; 3],
 }
 
 #[derive(BorshDeserialize, Debug)]
@@ -217,8 +218,7 @@ fn main() -> Result<()> {
         }
 
         let lookup_table_acc = lookup_table_acc_result.unwrap();
-        let asset_lookup_table =
-            AssetLookupTable::deserialize(&mut &lookup_table_acc.data[..])?;
+        let asset_lookup_table = account_deserialize::<AssetLookupTable>(&lookup_table_acc.data)?;
 
         // 5. Perform the crucial validation
         if asset_lookup_table.asset_mint != asset_mint {

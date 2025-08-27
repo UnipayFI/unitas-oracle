@@ -47,6 +47,5 @@ pub fn process_create_asset_lookup_table(
     asset_lookup_table.oracle_account = args.oracle_account;
     asset_lookup_table.decimals = args.decimals;
     asset_lookup_table.token_account_owners_len = 0;
-
     Ok(())
 }
