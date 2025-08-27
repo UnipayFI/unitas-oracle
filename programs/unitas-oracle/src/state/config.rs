@@ -1,35 +1,40 @@
 use anchor_lang::prelude::*;
 
 #[account]
-#[derive(InitSpace)]
+#[derive(Default)]
 pub struct Config {
-    pub admin: Option<Pubkey>,
-    pub pending_admin: Option<Pubkey>,
-}
+    // Auth
+    pub admin: Pubkey,
+    pub pending_admin: Pubkey,
 
-#[account]
-#[derive(InitSpace)]
-pub struct Operator {
-    pub config: Pubkey,
-    pub user: Pubkey,
+    // AUM
+    pub aum_usd: u128,
+    pub last_updated_timestamp: i64,
+
+    // Other configs
+    pub usdu_config: Pubkey,
 }
 
 impl Config {
-    pub const LEN: usize = 8 + Self::INIT_SPACE;
+    pub const LEN: usize = 8 + // discriminator
+        32 + // admin
+        32 + // pending_admin
+        16 + // aum_usd
+        8 +  // last_updated_timestamp
+        32;  // usdu_config
 
-    pub fn is_initialized(&self) -> bool {
-        self.admin.is_some()
-    }
-
-    pub fn is_admin(&self, user: &Pubkey) -> bool {
-        self.admin.is_some() && self.admin.unwrap() == *user
+    pub fn is_admin(&self, key: &Pubkey) -> bool {
+        self.admin == *key
     }
 }
 
-impl Operator {
-    pub const LEN: usize = 8 + Self::INIT_SPACE;
+// Operator is part of the auth model, keep it here.
+#[account]
+#[derive(Default)]
+pub struct Operator {
+    pub user: Pubkey,
+}
 
-    pub fn is_operator(&self, user: &Pubkey, config: &Pubkey) -> bool {
-        self.user == *user && self.config == *config
-    }
+impl Operator {
+    pub const LEN: usize = 8 + 32;
 }

@@ -10,11 +10,13 @@ pub struct AdminConfigCreated {
 #[event]
 pub struct OperatorAdded {
     pub operator: Pubkey,
+    pub user: Pubkey,
 }
 
 #[event]
 pub struct OperatorRemoved {
     pub operator: Pubkey,
+    pub user: Pubkey,
 }
 
 #[event]
@@ -57,5 +59,5 @@ pub struct AccountRemoved {
 pub struct AumUsdUpdated {
     pub aum_usd: u128,
     pub last_updated_timestamp: i64,
-    pub lookup_table: Pubkey,
+    pub config: Pubkey,
 }

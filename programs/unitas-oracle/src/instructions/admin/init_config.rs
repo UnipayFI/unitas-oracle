@@ -19,11 +19,14 @@ pub struct InitAdminConfig<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn process_init_admin_config(ctx: Context<InitAdminConfig>) -> Result<()> {
+pub fn process_init_admin_config(ctx: Context<InitAdminConfig>, usdu_config: Pubkey) -> Result<()> {
     let config = &mut ctx.accounts.config;
     config.set_inner(Config {
-        admin: Some(ctx.accounts.admin.key()),
-        pending_admin: None,
+        admin: ctx.accounts.admin.key(),
+        pending_admin: Pubkey::default(),
+        aum_usd: 0,
+        last_updated_timestamp: 0,
+        usdu_config,
     });
 
     emit!(AdminConfigCreated {

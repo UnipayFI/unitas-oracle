@@ -16,8 +16,16 @@ declare_id!("UtydtkrzVyT4UDNVp2zoEycyaonoQCKHRKa4wMyEJrw");
 pub mod unitas_oracle {
     use super::*;
 
-    pub fn init_admin_config(ctx: Context<InitAdminConfig>) -> Result<()> {
-        instructions::admin::process_init_admin_config(ctx)
+    pub fn init_admin_config(ctx: Context<InitAdminConfig>, usdu_config: Pubkey) -> Result<()> {
+        instructions::admin::process_init_admin_config(ctx, usdu_config)
+    }
+
+    pub fn propose_new_admin(ctx: Context<ProposeNewAdmin>) -> Result<()> {
+        instructions::admin::process_propose_new_admin(ctx)
+    }
+
+    pub fn accept_admin_transfer(ctx: Context<AcceptAdminTransfer>) -> Result<()> {
+        instructions::admin::process_accept_admin_transfer(ctx)
     }
 
     pub fn add_operator(ctx: Context<AddOperator>, user: Pubkey) -> Result<()> {
@@ -36,22 +44,14 @@ pub mod unitas_oracle {
     }
 
     pub fn add_account(ctx: Context<AddAccount>, account: Pubkey) -> Result<()> {
-        instructions::add_account::process_add_account(ctx, account)
+        process_add_account(ctx, account)
     }
 
     pub fn remove_account(ctx: Context<RemoveAccount>, account: Pubkey) -> Result<()> {
-        instructions::remove_account::process_remove_account(ctx, account)
+        process_remove_account(ctx, account)
     }
 
     pub fn update_aum_usd(ctx: Context<UpdateAumUsd>, aum_usd: u128) -> Result<()> {
-        instructions::update_aum_usd::process_update_aum_usd(ctx, aum_usd)
-    }
-
-    pub fn propose_new_admin(ctx: Context<ProposeNewAdmin>) -> Result<()> {
-        instructions::admin::process_propose_new_admin(ctx)
-    }
-
-    pub fn accept_admin_transfer(ctx: Context<AcceptAdminTransfer>) -> Result<()> {
-        instructions::admin::process_accept_admin_transfer(ctx)
+        process_update_aum_usd(ctx, aum_usd)
     }
 }

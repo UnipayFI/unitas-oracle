@@ -1,25 +1,36 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::Mint;
 
 use crate::error::ErrorCode;
 use crate::event::AccountRemoved;
 use crate::state::{AssetLookupTable, Config, Operator};
-use crate::ADMIN_CONFIG_SEED;
+use crate::{ADMIN_CONFIG_SEED, ASSET_LOOKUP_TABLE_SEED};
 
 #[derive(Accounts)]
 #[instruction(account: Pubkey)]
 pub struct RemoveAccount<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-    #[account(mut)]
+    
+    #[account(
+        mut,
+        seeds = [ASSET_LOOKUP_TABLE_SEED.as_bytes(), asset_mint.key().as_ref()],
+        bump
+    )]
     pub asset_lookup_table: Account<'info, AssetLookupTable>,
+    
+    pub asset_mint: Account<'info, Mint>,
+
     #[account(
         mut,
         seeds = [ADMIN_CONFIG_SEED.as_bytes()],
         bump
     )]
     pub config: Account<'info, Config>,
+    
     /// CHECK: This is the operator account, it is checked in the instruction
     pub operator: UncheckedAccount<'info>,
+    
     pub system_program: Program<'info, System>,
 }
 
@@ -42,7 +53,7 @@ pub fn process_remove_account(ctx: Context<RemoveAccount>, account: Pubkey) -> R
         .remove_token_account_owner(account)?;
     emit!(AccountRemoved {
         account,
-        lookup_table: ctx.accounts.asset_lookup_table.key(),
+        lookup_table: ctx.accounts.asset_lookup_table.key()
     });
     Ok(())
 }

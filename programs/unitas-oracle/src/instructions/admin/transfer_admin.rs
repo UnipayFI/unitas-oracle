@@ -17,7 +17,7 @@ pub struct ProposeNewAdmin<'info> {
         mut,
         seeds = [ADMIN_CONFIG_SEED.as_bytes()],
         bump,
-        constraint = config.admin == Some(current_admin.key()) @ ErrorCode::OnlyAdminCanProposeNewAdmin,
+        constraint = config.admin == current_admin.key() @ ErrorCode::OnlyAdminCanProposeNewAdmin,
     )]
     pub config: Box<Account<'info, Config>>,
 
@@ -32,7 +32,7 @@ pub struct AcceptAdminTransfer<'info> {
         mut,
         seeds = [ADMIN_CONFIG_SEED.as_bytes()],
         bump,
-        constraint = config.pending_admin == Some(new_admin.key()) @ ErrorCode::OnlyProposedAdminCanAccept,
+        constraint = config.pending_admin == new_admin.key() @ ErrorCode::OnlyProposedAdminCanAccept,
     )]
     pub config: Box<Account<'info, Config>>,
     pub system_program: Program<'info, System>,
@@ -42,16 +42,16 @@ pub fn process_propose_new_admin(ctx: Context<ProposeNewAdmin>) -> Result<()> {
     let config = &mut ctx.accounts.config;
 
     require!(
-        config.pending_admin != Some(ctx.accounts.proposed_admin.key()),
+        config.pending_admin != ctx.accounts.proposed_admin.key(),
         ErrorCode::ProposedAdminAlreadySet
     );
 
     require!(
-        config.admin != Some(ctx.accounts.proposed_admin.key()),
+        config.admin != ctx.accounts.proposed_admin.key(),
         ErrorCode::ProposedAdminIsCurrentAdmin
     );
 
-    config.pending_admin = Some(ctx.accounts.proposed_admin.key());
+    config.pending_admin = ctx.accounts.proposed_admin.key();
 
     emit!(AdminTransferProposed {
         current_admin: ctx.accounts.current_admin.key(),
@@ -66,11 +66,11 @@ pub fn process_accept_admin_transfer(ctx: Context<AcceptAdminTransfer>) -> Resul
 
     let previous_admin = config.admin;
 
-    config.admin = Some(ctx.accounts.new_admin.key());
-    config.pending_admin = None;
+    config.admin = ctx.accounts.new_admin.key();
+    config.pending_admin = Pubkey::default();
 
     emit!(AdminTransferCompleted {
-        previous_admin: previous_admin.unwrap(),
+        previous_admin: previous_admin,
         new_admin: ctx.accounts.new_admin.key(),
     });
 

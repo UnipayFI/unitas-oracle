@@ -1,38 +1,27 @@
 use anchor_lang::prelude::*;
-
 use crate::error::ErrorCode;
 
-pub const MAX_ACCOUNTS_PER_TABLE: usize = 25;
+pub const MAX_ACCOUNTS_PER_ASSET: usize = 25;
 
 #[account]
 #[derive(Default)]
 pub struct AssetLookupTable {
-    pub aum_usd: u128,
-    pub last_updated_timestamp: i64,
-    pub jlp_oracle_account: Pubkey,
-    pub usdc_oracle_account: Pubkey,
-    pub usdc_mint: Pubkey,
-    pub jlp_mint: Pubkey,
-    pub usdu_config: Pubkey,
+    pub asset_mint: Pubkey,
+    pub oracle_account: Pubkey,
+    pub decimals: u8,
     pub token_account_owners: Vec<Pubkey>,
 }
 
 impl AssetLookupTable {
-    // total size: 1048 bytes
     pub const LEN: usize = 8 + // discriminator
-        16 + // aum_usd
-        8 + // last_updated_timestamp
-        32 + // jlp_oracle_account
-        32 + // usdc_oracle_account
-        32 + // usdc_mint
-        32 + // jlp_mint
-        32 + // usdu_config
-        (4 + 32 * MAX_ACCOUNTS_PER_TABLE); // token_account_owners
+        32 + // asset_mint
+        32 + // oracle_account
+        1 +  // decimals
+        (4 + 32 * MAX_ACCOUNTS_PER_ASSET); // token_account_owners
 
     pub fn add_token_account_owner(&mut self, account: Pubkey) -> Result<()> {
-        require!(!self.is_token_account_owner_contains(account), ErrorCode::AccountAlreadyAdded);
-        require!(self.token_account_owners.len() < MAX_ACCOUNTS_PER_TABLE, ErrorCode::AccountLimitReached);
-        
+        require!(!self.token_account_owners.contains(&account), ErrorCode::AccountAlreadyAdded);
+        require!(self.token_account_owners.len() < MAX_ACCOUNTS_PER_ASSET, ErrorCode::AccountLimitReached);
         self.token_account_owners.push(account);
         Ok(())
     }
@@ -44,13 +33,5 @@ impl AssetLookupTable {
         } else {
             Err(ErrorCode::InvalidAccount.into())
         }
-    }
-
-    pub fn is_token_account_owner_contains(&self, account: Pubkey) -> bool {
-        self.token_account_owners.contains(&account)
-    }
-
-    pub fn set_aum_usd(&mut self, aum_usd: u128) {
-        self.aum_usd = aum_usd;
     }
 }

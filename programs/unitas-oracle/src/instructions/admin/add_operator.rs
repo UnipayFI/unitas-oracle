@@ -30,7 +30,6 @@ pub struct AddOperator<'info> {
 
 pub fn process_add_operator(ctx: Context<AddOperator>, user: Pubkey) -> Result<()> {
     let operator = Operator {
-        config: ctx.accounts.config.key(),
         user,
     };
     #[cfg(feature = "enable-log")]
@@ -43,6 +42,7 @@ pub fn process_add_operator(ctx: Context<AddOperator>, user: Pubkey) -> Result<(
 
     ctx.accounts.operator.set_inner(operator);
     emit!(OperatorAdded {
+        user,
         operator: ctx.accounts.operator.key(),
     });
     Ok(())
