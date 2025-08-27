@@ -13,7 +13,7 @@ use std::str::FromStr;
 mod constants;
 
 const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
-const PROGRAM_ID: &str = "UtyfaKYGYeyb1bXEycSDJujbJguJHD6cYcrjnqDnNhq";
+const PROGRAM_ID: &str = "UtyXF479UFC78u1ZV94JtXmnd7njb5FmSYZfFFdP1sT";
 
 fn account_deserialize<T: BorshDeserialize>(data: &[u8]) -> Result<T> {
     if data.len() < 8 {
@@ -34,10 +34,10 @@ struct Args {
 pub struct AssetLookupTable {
     pub asset_mint: Pubkey,
     pub oracle_account: Pubkey,
-    pub token_account_owners: [Pubkey; 128],
+    pub token_account_owners: [Pubkey; 16],
     pub token_account_owners_len: u32,
     pub decimals: u8,
-    pub padding: [u8; 3],
+    pub paddings: [u8; 3],
 }
 
 #[derive(BorshDeserialize, Debug)]

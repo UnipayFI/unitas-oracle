@@ -9,10 +9,9 @@ pub mod state;
 use crate::instructions::*;
 
 pub use constants::*;
-pub use error::*;
 pub use state::*;
 
-declare_id!("UtyfaKYGYeyb1bXEycSDJujbJguJHD6cYcrjnqDnNhq");
+declare_id!("UtyXF479UFC78u1ZV94JtXmnd7njb5FmSYZfFFdP1sT");
 
 #[program]
 pub mod unitas_oracle {

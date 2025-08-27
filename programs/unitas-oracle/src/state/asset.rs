@@ -1,7 +1,7 @@
 use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 
-pub const MAX_ACCOUNTS_PER_ASSET: usize = 128;
+pub const MAX_ACCOUNTS_PER_ASSET: usize = 16;
 
 #[account(zero_copy)]
 #[repr(C)]
@@ -15,8 +15,8 @@ pub struct AssetLookupTable {
     pub token_account_owners_len: u32,
     // 1-byte alignment
     pub decimals: u8,
-    // trailing padding
-    pub padding: [u8; 3],
+    // trailing paddings
+    pub paddings: [u8; 3],
 }
 
 impl AssetLookupTable {
