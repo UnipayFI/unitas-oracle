@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
 use crate::event::OperatorAdded;
-use crate::state::{UnitasConfig, Operator};
+use crate::state::{Operator, UnitasConfig};
 use crate::{ADMIN_CONFIG_SEED, OPERATOR_SEED};
 
 #[derive(Accounts)]
@@ -29,9 +29,7 @@ pub struct AddOperator<'info> {
 }
 
 pub fn process_add_operator(ctx: Context<AddOperator>, user: Pubkey) -> Result<()> {
-    let operator = Operator {
-        user,
-    };
+    let operator = Operator { user };
     #[cfg(feature = "enable-log")]
     msg!(
         "add_operator: admin:{}, user:{}, operator:{}",

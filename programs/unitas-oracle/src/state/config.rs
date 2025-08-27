@@ -21,7 +21,7 @@ impl UnitasConfig {
         32 + // pending_admin
         16 + // aum_usd
         8 +  // last_updated_timestamp
-        32;  // usdu_config
+        32; // usdu_config
 
     pub fn is_admin(&self, key: &Pubkey) -> bool {
         self.admin == *key

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
 use crate::event::OperatorRemoved;
-use crate::state::{UnitasConfig, Operator};
+use crate::state::{Operator, UnitasConfig};
 use crate::{ADMIN_CONFIG_SEED, OPERATOR_SEED};
 
 #[derive(Accounts)]

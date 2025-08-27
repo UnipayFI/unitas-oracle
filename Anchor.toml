@@ -7,10 +7,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-unitas_oracle = "UtydtkrzVyT4UDNVp2zoEycyaonoQCKHRKa4wMyEJrw"
+unitas_oracle = "UtycozxZPRv91c2ibTA1pmvFoFqqVCAoZ1jxYSgArpM"
 
 [programs.mainnet]
-unitas_oracle = "UtydtkrzVyT4UDNVp2zoEycyaonoQCKHRKa4wMyEJrw"
+unitas_oracle = "UtycozxZPRv91c2ibTA1pmvFoFqqVCAoZ1jxYSgArpM"
 
 [registry]
 url = "https://api.apr.dev"

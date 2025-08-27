@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::error::ErrorCode;
+use anchor_lang::prelude::*;
 
 pub const MAX_ACCOUNTS_PER_ASSET: usize = 128;
 
@@ -20,14 +20,24 @@ impl AssetLookupTable {
         (4 + 32 * MAX_ACCOUNTS_PER_ASSET); // token_account_owners
 
     pub fn add_token_account_owner(&mut self, account: Pubkey) -> Result<()> {
-        require!(!self.token_account_owners.contains(&account), ErrorCode::AccountAlreadyAdded);
-        require!(self.token_account_owners.len() < MAX_ACCOUNTS_PER_ASSET, ErrorCode::AccountLimitReached);
+        require!(
+            !self.token_account_owners.contains(&account),
+            ErrorCode::AccountAlreadyAdded
+        );
+        require!(
+            self.token_account_owners.len() < MAX_ACCOUNTS_PER_ASSET,
+            ErrorCode::AccountLimitReached
+        );
         self.token_account_owners.push(account);
         Ok(())
     }
 
     pub fn remove_token_account_owner(&mut self, account: Pubkey) -> Result<()> {
-        if let Some(index) = self.token_account_owners.iter().position(|acc| *acc == account) {
+        if let Some(index) = self
+            .token_account_owners
+            .iter()
+            .position(|acc| *acc == account)
+        {
             self.token_account_owners.remove(index);
             Ok(())
         } else {

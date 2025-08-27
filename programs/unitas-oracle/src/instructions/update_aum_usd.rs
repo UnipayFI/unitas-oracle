@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
 use crate::event::AumUsdUpdated;
-use crate::state::{UnitasConfig, Operator};
+use crate::state::{Operator, UnitasConfig};
 use crate::ADMIN_CONFIG_SEED;
 
 #[derive(Accounts)]

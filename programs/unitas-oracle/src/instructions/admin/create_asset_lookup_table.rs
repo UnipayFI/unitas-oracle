@@ -1,15 +1,15 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 
+use crate::error::ErrorCode;
 use crate::state::{AssetLookupTable, UnitasConfig, MAX_ACCOUNTS_PER_ASSET};
 use crate::{ADMIN_CONFIG_SEED, ASSET_LOOKUP_TABLE_SEED};
-use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 pub struct CreateAssetLookupTable<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
-    
+
     #[account(
         init,
         payer = admin,
@@ -18,7 +18,7 @@ pub struct CreateAssetLookupTable<'info> {
         bump
     )]
     pub asset_lookup_table: Account<'info, AssetLookupTable>,
-    
+
     pub asset_mint: Account<'info, Mint>,
 
     #[account(
@@ -27,7 +27,7 @@ pub struct CreateAssetLookupTable<'info> {
         constraint = config.is_admin(&admin.key()) @ ErrorCode::InvalidAdmin
     )]
     pub config: Account<'info, UnitasConfig>,
-    
+
     pub system_program: Program<'info, System>,
 }
 

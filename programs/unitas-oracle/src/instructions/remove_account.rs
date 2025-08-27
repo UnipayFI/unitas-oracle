@@ -3,7 +3,7 @@ use anchor_spl::token::Mint;
 
 use crate::error::ErrorCode;
 use crate::event::AccountRemoved;
-use crate::state::{AssetLookupTable, UnitasConfig, Operator};
+use crate::state::{AssetLookupTable, Operator, UnitasConfig};
 use crate::{ADMIN_CONFIG_SEED, ASSET_LOOKUP_TABLE_SEED};
 
 #[derive(Accounts)]
@@ -11,14 +11,14 @@ use crate::{ADMIN_CONFIG_SEED, ASSET_LOOKUP_TABLE_SEED};
 pub struct RemoveAccount<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-    
+
     #[account(
         mut,
         seeds = [ASSET_LOOKUP_TABLE_SEED.as_bytes(), asset_mint.key().as_ref()],
         bump
     )]
     pub asset_lookup_table: Account<'info, AssetLookupTable>,
-    
+
     pub asset_mint: Account<'info, Mint>,
 
     #[account(
@@ -27,10 +27,10 @@ pub struct RemoveAccount<'info> {
         bump
     )]
     pub config: Account<'info, UnitasConfig>,
-    
+
     /// CHECK: This is the operator account, it is checked in the instruction
     pub operator: UncheckedAccount<'info>,
-    
+
     pub system_program: Program<'info, System>,
 }
 

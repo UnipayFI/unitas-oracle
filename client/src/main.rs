@@ -1,32 +1,26 @@
-use std::str::FromStr;
-use anchor_lang::{AccountDeserialize, solana_program};
-use anchor_client::solana_sdk::{
-    pubkey::Pubkey,
-    commitment_config::CommitmentConfig,
-};
-use borsh::BorshDeserialize;
-use anyhow::{Result, anyhow};
-use clap::Parser;
-use solana_client::rpc_client::RpcClient;
-use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
+use crate::constants::{ADMIN_CONFIG_SEED, ASSET_LOOKUP_TABLE_SEED, JLP_MINT, USDC_MINT};
+use anchor_client::solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey};
+use anchor_lang::{solana_program, AccountDeserialize};
 use anchor_spl::token::TokenAccount;
+use anyhow::{anyhow, Result};
+use borsh::BorshDeserialize;
+use clap::Parser;
+use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
+use solana_client::rpc_client::RpcClient;
 use spl_associated_token_account::get_associated_token_address;
-use crate::constants::{ASSET_LOOKUP_TABLE_SEED, JLP_MINT, USDC_MINT};
+use std::str::FromStr;
 
 mod constants;
 
 const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
-
-// Account addresses
-const UNITAS_CONFIG: &str = "H2aM4Vvfs32sWJ5q2a2i8kXUnpy4vC3t3K1aD2y8j9sB"; // Example address, replace with your actual config PDA
+const PROGRAM_ID: &str = "UtycozxZPRv91c2ibTA1pmvFoFqqVCAoZ1jxYSgArpM";
 
 fn account_deserialize<T: BorshDeserialize>(data: &[u8]) -> Result<T> {
     if data.len() < 8 {
         return Err(anyhow!("Account data too short"));
     }
     let mut account_data: &[u8] = &data[8..];
-    T::deserialize(&mut account_data)
-        .map_err(|e| anyhow!("Failed to deserialize account: {:?}", e))
+    T::deserialize(&mut account_data).map_err(|e| anyhow!("Failed to deserialize account: {:?}", e))
 }
 
 #[derive(Parser, Debug)]
@@ -119,9 +113,15 @@ fn calculate_asset_value(
     let price_decimals: u8 = price_account.price_message.exponent.abs() as u8;
     let token_decimals = asset_lookup_table.decimals;
 
-    println!("\n--- Calculating Value for Mint: {} ---", asset_lookup_table.asset_mint);
+    println!(
+        "\n--- Calculating Value for Mint: {} ---",
+        asset_lookup_table.asset_mint
+    );
     println!("Raw price: {}", price_value);
-    println!("Actual price: {}", price_value as f64 / ten_pow(price_decimals) as f64);
+    println!(
+        "Actual price: {}",
+        price_value as f64 / ten_pow(price_decimals) as f64
+    );
 
     let token_accounts: Vec<(Pubkey, TokenAccount)> = asset_lookup_table
         .token_account_owners
@@ -144,7 +144,10 @@ fn calculate_asset_value(
     let mut total_asset_value: u128 = 0;
     for (ata_pubkey, token_account) in token_accounts.iter() {
         let token_amount: u128 = token_account.amount.into();
-        println!("\nProcessing Owner: {}, ATA: {}", token_account.owner, ata_pubkey);
+        println!(
+            "\nProcessing Owner: {}, ATA: {}",
+            token_account.owner, ata_pubkey
+        );
         println!("Raw token amount: {}", token_amount);
 
         let raw_value = price_value * token_amount;
@@ -164,41 +167,49 @@ fn calculate_asset_value(
     Ok(total_asset_value)
 }
 
-
 fn main() -> Result<()> {
     let args = Args::parse();
     let rpc_client = RpcClient::new_with_commitment(args.url, CommitmentConfig::confirmed());
-    let program_id = Pubkey::from_str("UtydtkrzVyT4UDNVp2zoEycyaonoQCKHRKa4wMyEJrw")?; // Replace with your actual program ID
+    let program_id = Pubkey::from_str(PROGRAM_ID)?;
 
-    // 1. Fetch the global UnitasConfig
-    let unitas_config_pubkey = Pubkey::from_str(UNITAS_CONFIG)?;
-    let unitas_config_acc = rpc_client.get_account(&unitas_config_pubkey)?;
+    // 1. Derive the global UnitasConfig PDA
+    let (unitas_config_pda, _) =
+        Pubkey::find_program_address(&[ADMIN_CONFIG_SEED.as_bytes()], &program_id);
+    println!("Derived UnitasConfig PDA: {}", unitas_config_pda);
+
+    let unitas_config_acc = rpc_client.get_account(&unitas_config_pda)?;
     let unitas_config = account_deserialize::<UnitasConfig>(&unitas_config_acc.data)?;
 
-    println!("Unitas Config Last Updated Timestamp: {}", unitas_config.last_updated_timestamp);
-    
+    println!(
+        "Unitas Config Last Updated Timestamp: {}",
+        unitas_config.last_updated_timestamp
+    );
+
     // 2. Initialize total_value with the base AUM from the config
     let mut total_value: u128 = unitas_config.aum_usd;
     println!("Initial AUM from Config: {}", total_value);
 
     // 3. Iterate through the list of tracked asset mints
-    let tracked_asset_mints = vec![
-        Pubkey::from_str(JLP_MINT)?,
-        Pubkey::from_str(USDC_MINT)?,
-    ];
+    let tracked_asset_mints = vec![Pubkey::from_str(JLP_MINT)?, Pubkey::from_str(USDC_MINT)?];
 
     for asset_mint in tracked_asset_mints {
         // 4. Derive and validate the AssetLookupTable PDA for each mint
         let (asset_lookup_table_pda, _) = Pubkey::find_program_address(
             &[ASSET_LOOKUP_TABLE_SEED.as_bytes(), asset_mint.as_ref()],
-            &program_id
+            &program_id,
         );
 
-        println!("\nDerived AssetLookupTable PDA for mint {}: {}", asset_mint, asset_lookup_table_pda);
+        println!(
+            "\nDerived AssetLookupTable PDA for mint {}: {}",
+            asset_mint, asset_lookup_table_pda
+        );
 
         let lookup_table_acc_result = rpc_client.get_account(&asset_lookup_table_pda);
         if lookup_table_acc_result.is_err() {
-            println!("Warning: AssetLookupTable not found for mint {}. Skipping.", asset_mint);
+            println!(
+                "Warning: AssetLookupTable not found for mint {}. Skipping.",
+                asset_mint
+            );
             continue;
         }
 
@@ -227,9 +238,15 @@ fn main() -> Result<()> {
 
     println!("\n--- Final AUM Calculation ---");
     println!("Total AUM value: {}", total_value);
-    println!("Total AUM value (human readable): {}", total_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
+    println!(
+        "Total AUM value (human readable): {}",
+        total_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64
+    );
     println!("USDU total supply: {}", usdu_config.total_supply);
-    println!("USDU price: {}", total_value as f64 / usdu_config.total_supply as f64);
-    
+    println!(
+        "USDU price: {}",
+        total_value as f64 / usdu_config.total_supply as f64
+    );
+
     Ok(())
 }
