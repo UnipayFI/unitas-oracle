@@ -35,7 +35,8 @@ pub struct AssetLookupTable {
     pub asset_mint: Pubkey,
     pub oracle_account: Pubkey,
     pub decimals: u8,
-    pub token_account_owners: Vec<Pubkey>,
+    pub token_account_owners_len: u32,
+    pub token_account_owners: [Pubkey; 128],
 }
 
 #[derive(BorshDeserialize, Debug)]
@@ -123,8 +124,10 @@ fn calculate_asset_value(
         price_value as f64 / ten_pow(price_decimals) as f64
     );
 
-    let token_accounts: Vec<(Pubkey, TokenAccount)> = asset_lookup_table
-        .token_account_owners
+    let owners_slice = &asset_lookup_table.token_account_owners
+        [..asset_lookup_table.token_account_owners_len as usize];
+
+    let token_accounts: Vec<(Pubkey, TokenAccount)> = owners_slice
         .iter()
         .filter_map(|owner| {
             let pubkey = get_associated_token_address(owner, &asset_lookup_table.asset_mint);
@@ -214,7 +217,8 @@ fn main() -> Result<()> {
         }
 
         let lookup_table_acc = lookup_table_acc_result.unwrap();
-        let asset_lookup_table = account_deserialize::<AssetLookupTable>(&lookup_table_acc.data)?;
+        let asset_lookup_table =
+            AssetLookupTable::deserialize(&mut &lookup_table_acc.data[..])?;
 
         // 5. Perform the crucial validation
         if asset_lookup_table.asset_mint != asset_mint {
