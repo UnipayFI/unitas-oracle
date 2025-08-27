@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use crate::error::ErrorCode;
 
-pub const MAX_ACCOUNTS_PER_ASSET: usize = 25;
+pub const MAX_ACCOUNTS_PER_ASSET: usize = 128;
 
 #[account]
 #[derive(Default)]

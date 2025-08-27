@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use anchor_lang::AccountDeserialize;
+use anchor_lang::{AccountDeserialize, solana_program};
 use anchor_client::solana_sdk::{
     pubkey::Pubkey,
     commitment_config::CommitmentConfig,
@@ -11,19 +11,14 @@ use solana_client::rpc_client::RpcClient;
 use pyth_solana_receiver_sdk::price_update::PriceUpdateV2;
 use anchor_spl::token::TokenAccount;
 use spl_associated_token_account::get_associated_token_address;
+use crate::constants::{ASSET_LOOKUP_TABLE_SEED, JLP_MINT, USDC_MINT};
+
+mod constants;
 
 const AUM_VALUE_SCALE_DECIMALS: u8 = 6;
 
 // Account addresses
-const USDU_CONFIG: &str = "om3x6puF7Beqxc1WYPCYBWwUZMZ77hYk7AsMEbi8Fez";
-const LOOKUP_TABLE: &str = "GyC2PwMthX1vB3fSBEsRBBXiFyEKihNRD8KEdtbveCEb";
-
-const JLP_ORACLE: &str = "2TTGSRSezqFzeLUH8JwRUbtN66XLLaymfYsWRTMjfiMw";
-const USDC_ORACLE: &str = "Dpw1EAVrSB1ibxiDQyTAW6Zip3J4Btk2x4SgApQCeFbX";
-
-// Mint addresses
-const USDC_MINT: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
-const JLP_MINT: &str = "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4";
+const UNITAS_CONFIG: &str = "H2aM4Vvfs32sWJ5q2a2i8kXUnpy4vC3t3K1aD2y8j9sB"; // Example address, replace with your actual config PDA
 
 fn account_deserialize<T: BorshDeserialize>(data: &[u8]) -> Result<T> {
     if data.len() < 8 {
@@ -43,14 +38,19 @@ struct Args {
 
 #[derive(BorshDeserialize, Debug)]
 pub struct AssetLookupTable {
+    pub asset_mint: Pubkey,
+    pub oracle_account: Pubkey,
+    pub decimals: u8,
+    pub token_account_owners: Vec<Pubkey>,
+}
+
+#[derive(BorshDeserialize, Debug)]
+pub struct UnitasConfig {
+    pub admin: Pubkey,
+    pub pending_admin: Pubkey,
     pub aum_usd: u128,
     pub last_updated_timestamp: i64,
-    pub jlp_oracle_account: Pubkey,
-    pub usdc_oracle_account: Pubkey,
-    pub usdc_mint: Pubkey,
-    pub jlp_mint: Pubkey,
     pub usdu_config: Pubkey,
-    pub token_account_owners: Vec<Pubkey>,
 }
 
 #[derive(BorshDeserialize, Debug)]
@@ -60,11 +60,9 @@ pub struct UsduConfig {
     pub access_registry: Pubkey,
     pub bump: u8,
     pub is_initialized: bool,
-
     pub usdu_token: Pubkey,
     pub usdu_token_bump: u8,
     pub is_usdu_token_initialized: bool,
-
     pub total_supply: u128,
 }
 
@@ -108,196 +106,129 @@ pub fn ten_pow(exponent: impl Into<u32>) -> u128 {
     value
 }
 
-fn calculate_jlp_value(
+fn calculate_asset_value(
     rpc_client: &RpcClient,
-    lookup_table: &AssetLookupTable,
+    asset_lookup_table: &AssetLookupTable,
 ) -> Result<u128> {
-    let jlp_oracle_pubkey = Pubkey::from_str(JLP_ORACLE)?;
-    let jlp_oracle_acc = rpc_client.get_account(&jlp_oracle_pubkey)?;
+    let oracle_acc = rpc_client.get_account(&asset_lookup_table.oracle_account)?;
+    let price_account: PriceUpdateV2 = PriceUpdateV2::try_deserialize(&mut &oracle_acc.data[..])
+        .map_err(|e| anyhow!("Failed to deserialize price account: {:?}", e))?;
 
-    let jlp_price_account: PriceUpdateV2 =
-        PriceUpdateV2::try_deserialize(&mut &jlp_oracle_acc.data[..])
-            .map_err(|e| anyhow!("Failed to deserialize price account: {:?}", e))?;
-    let jlp_price = jlp_price_account.price_message.price;
-    let jlp_price_value: u128 = jlp_price.abs() as u128;
-    let jlp_price_decimals: u8 = jlp_price_account.price_message.exponent.abs() as u8;
-    let jlp_token_decimals = 6;
-    println!("JLP raw price: {}", jlp_price_value);
-    println!(
-        "JLP actual price: {}",
-        jlp_price_value as f64 / ten_pow(jlp_price_decimals) as f64
-    );
-    println!("JLP price decimals: {}", jlp_price_decimals);
-    println!("JLP token decimals: {}", jlp_token_decimals);
+    let price = price_account.price_message.price;
+    let price_value: u128 = price.abs() as u128;
+    let price_decimals: u8 = price_account.price_message.exponent.abs() as u8;
+    let token_decimals = asset_lookup_table.decimals;
 
-    let jlp_accounts: Vec<(Pubkey, TokenAccount)> = lookup_table
+    println!("\n--- Calculating Value for Mint: {} ---", asset_lookup_table.asset_mint);
+    println!("Raw price: {}", price_value);
+    println!("Actual price: {}", price_value as f64 / ten_pow(price_decimals) as f64);
+
+    let token_accounts: Vec<(Pubkey, TokenAccount)> = asset_lookup_table
         .token_account_owners
         .iter()
         .filter_map(|owner| {
-            let pubkey = get_associated_token_address(owner, &lookup_table.jlp_mint);
+            let pubkey = get_associated_token_address(owner, &asset_lookup_table.asset_mint);
             match rpc_client.get_account(&pubkey) {
-                Ok(account) => {
-                    match TokenAccount::try_deserialize(&mut &account.data[..]) {
-                        Ok(token_account) => Some((pubkey, token_account)),
-                        Err(_) => {
-                            println!("Warning: Failed to deserialize JLP token account {}", pubkey);
-                            None
-                        }
+                Ok(account) => match TokenAccount::try_deserialize(&mut &account.data[..]) {
+                    Ok(token_account) => Some((pubkey, token_account)),
+                    Err(_) => {
+                        println!("Warning: Failed to deserialize token account {}", pubkey);
+                        None
                     }
                 },
-                Err(_) => {
-                    None
-                }
+                Err(_) => None, // Token account does not exist or RPC error
             }
         })
         .collect();
 
-    let mut accrue_value: u128 = 0;
-    for (jlp_token_account_pubkey, token_account) in jlp_accounts.iter() {
-        println!("\nProcessing JLP account {}", jlp_token_account_pubkey);
+    let mut total_asset_value: u128 = 0;
+    for (ata_pubkey, token_account) in token_accounts.iter() {
         let token_amount: u128 = token_account.amount.into();
+        println!("\nProcessing Owner: {}, ATA: {}", token_account.owner, ata_pubkey);
         println!("Raw token amount: {}", token_amount);
-        println!(
-            "Actual token amount: {}",
-            token_amount as f64 / ten_pow(jlp_token_decimals) as f64
-        );
 
-        let raw_value = jlp_price_value * token_amount;
-        println!("Raw multiplication result: {}", raw_value);
-
-        let total_decimals = jlp_price_decimals + jlp_token_decimals;
-        let token_amount_usd = if total_decimals > AUM_VALUE_SCALE_DECIMALS {
+        let raw_value = price_value * token_amount;
+        let total_decimals = price_decimals + token_decimals;
+        let asset_value_usd = if total_decimals > AUM_VALUE_SCALE_DECIMALS {
             let diff = total_decimals - AUM_VALUE_SCALE_DECIMALS;
             raw_value / ten_pow(diff)
         } else {
             let diff = AUM_VALUE_SCALE_DECIMALS - total_decimals;
             raw_value * ten_pow(diff)
         };
-
-        println!("Token USD value: {}", token_amount_usd);
-        println!(
-            "Token USD value (human readable): {}",
-            token_amount_usd as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64
-        );
-        accrue_value += token_amount_usd;
+        println!("USD value (scaled): {}", asset_value_usd);
+        total_asset_value += asset_value_usd;
     }
-    println!("\n");
-    println!("JLP accrue value: {}", accrue_value);
-    println!(
-        "JLP accrue value (human readable): {}",
-        accrue_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64
-    );
 
-    Ok(accrue_value)
+    println!("Total USD value for this asset: {}", total_asset_value);
+    Ok(total_asset_value)
 }
 
-fn calculate_usdc_value(rpc_client: &RpcClient, lookup_table: &AssetLookupTable) -> Result<u128> {
-    let usdc_oracle_pubkey = Pubkey::from_str(USDC_ORACLE)?;
-    let usdc_oracle_acc = rpc_client.get_account(&usdc_oracle_pubkey)?;
-    let usdc_price_account: PriceUpdateV2 =
-        PriceUpdateV2::try_deserialize(&mut &usdc_oracle_acc.data[..])
-            .map_err(|e| anyhow!("Failed to deserialize price account: {:?}", e))?;
-    let usdc_price = usdc_price_account.price_message.price;
-    let usdc_price_value: u128 = usdc_price.abs() as u128;
-    let usdc_price_decimals: u8 = usdc_price_account.price_message.exponent.abs() as u8;
-    let usdc_token_decimals: u8 = 6;
-
-    let usdc_accounts: Vec<(Pubkey, TokenAccount)> = lookup_table
-        .token_account_owners
-        .iter()
-        .filter_map(|owner| {
-            let pubkey = get_associated_token_address(owner, &lookup_table.usdc_mint);
-            match rpc_client.get_account(&pubkey) {
-                Ok(account) => {
-                    match TokenAccount::try_deserialize(&mut &account.data[..]) {
-                        Ok(token_account) => Some((pubkey, token_account)),
-                        Err(_) => {
-                            println!("Warning: Failed to deserialize USDC token account {}", pubkey);
-                            None
-                        }
-                    }
-                },
-                Err(_) => {
-                    None
-                }
-            }
-        })
-        .collect();
-
-    let mut total_usdc_value: u128 = 0;
-    for (usdc_token_account_pubkey, usdc_token_account) in usdc_accounts.iter() {
-        let usdc_amount: u128 = usdc_token_account.amount.into();
-        println!("\nProcessing USDC account {}", usdc_token_account_pubkey);
-        println!("USDC raw token amount: {}", usdc_amount);
-        println!(
-            "USDC actual token amount: {}",
-            usdc_amount as f64 / ten_pow(usdc_token_decimals) as f64
-        );
-        println!("USDC raw price: {}", usdc_price_value);
-        let raw_value = usdc_price_value * usdc_amount;
-        let total_decimals = usdc_price_decimals + usdc_token_decimals;
-        let usdc_value = if total_decimals > AUM_VALUE_SCALE_DECIMALS {
-            let diff = total_decimals - AUM_VALUE_SCALE_DECIMALS;
-            raw_value / ten_pow(diff)
-        } else {
-            let diff = AUM_VALUE_SCALE_DECIMALS - total_decimals;
-            raw_value * ten_pow(diff)
-        };
-        println!("Usdc value: {}", usdc_value);
-        println!(
-            "Usdc value (human readable): {}",
-            usdc_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64
-        );
-        total_usdc_value += usdc_value;
-    }
-    Ok(total_usdc_value)
-}
-
-fn check_all_pubkeys(lookup_table: &AssetLookupTable) -> Result<()> {
-    let jlp_oracle_pubkey = Pubkey::from_str(JLP_ORACLE)?;
-    let usdc_oracle_pubkey = Pubkey::from_str(USDC_ORACLE)?;
-    let usdc_mint_pubkey = Pubkey::from_str(USDC_MINT)?;
-    let jlp_mint_pubkey = Pubkey::from_str(JLP_MINT)?;
-    let usdu_config_pubkey = Pubkey::from_str(USDU_CONFIG)?;
-
-    assert_eq!(lookup_table.jlp_oracle_account, jlp_oracle_pubkey);
-    assert_eq!(lookup_table.usdc_oracle_account, usdc_oracle_pubkey);
-    assert_eq!(lookup_table.usdc_mint, usdc_mint_pubkey);
-    assert_eq!(lookup_table.jlp_mint, jlp_mint_pubkey);
-    assert_eq!(lookup_table.usdu_config, usdu_config_pubkey);
-    Ok(())
-}
 
 fn main() -> Result<()> {
     let args = Args::parse();
     let rpc_client = RpcClient::new_with_commitment(args.url, CommitmentConfig::confirmed());
+    let program_id = Pubkey::from_str("UtydtkrzVyT4UDNVp2zoEycyaonoQCKHRKa4wMyEJrw")?; // Replace with your actual program ID
+
+    // 1. Fetch the global UnitasConfig
+    let unitas_config_pubkey = Pubkey::from_str(UNITAS_CONFIG)?;
+    let unitas_config_acc = rpc_client.get_account(&unitas_config_pubkey)?;
+    let unitas_config = account_deserialize::<UnitasConfig>(&unitas_config_acc.data)?;
+
+    println!("Unitas Config Last Updated Timestamp: {}", unitas_config.last_updated_timestamp);
     
-    let lookup_table_pubkey = Pubkey::from_str(LOOKUP_TABLE)?;
-    let lookup_table_acc = rpc_client.get_account(&lookup_table_pubkey)?;
-    let lookup_table = account_deserialize::<AssetLookupTable>(&lookup_table_acc.data)
-        .map_err(|e| anyhow!("Failed to deserialize lookup table: {:?}, data length: {}", e, lookup_table_acc.data.len()))?;
+    // 2. Initialize total_value with the base AUM from the config
+    let mut total_value: u128 = unitas_config.aum_usd;
+    println!("Initial AUM from Config: {}", total_value);
 
-    println!("Lookup table last updated timestamp: {}", lookup_table.last_updated_timestamp);
-    check_all_pubkeys(&lookup_table)?;
-    
-    let usdu_config_pubkey = Pubkey::from_str(USDU_CONFIG)?;
-    let usdu_config_acc = rpc_client.get_account(&usdu_config_pubkey)?;
-    let usdu_config = account_deserialize::<UsduConfig>(&usdu_config_acc.data)
-        .map_err(|e| anyhow!("Failed to deserialize USDU config: {:?}, data length: {}", e, usdu_config_acc.data.len()))?;
-    
-    let mut total_value: u128 = lookup_table.aum_usd;
-    println!("Initial AUM: {}", total_value);
+    // 3. Iterate through the list of tracked asset mints
+    let tracked_asset_mints = vec![
+        Pubkey::from_str(JLP_MINT)?,
+        Pubkey::from_str(USDC_MINT)?,
+    ];
 
-    let jlp_accrue_value = calculate_jlp_value(&rpc_client, &lookup_table)?;
-    total_value += jlp_accrue_value;
+    for asset_mint in tracked_asset_mints {
+        // 4. Derive and validate the AssetLookupTable PDA for each mint
+        let (asset_lookup_table_pda, _) = Pubkey::find_program_address(
+            &[ASSET_LOOKUP_TABLE_SEED.as_bytes(), asset_mint.as_ref()],
+            &program_id
+        );
 
-    let usdc_value = calculate_usdc_value(&rpc_client, &lookup_table)?;
-    total_value += usdc_value;
+        println!("\nDerived AssetLookupTable PDA for mint {}: {}", asset_mint, asset_lookup_table_pda);
 
-    println!("\nTotal AUM value: {}", total_value);
+        let lookup_table_acc_result = rpc_client.get_account(&asset_lookup_table_pda);
+        if lookup_table_acc_result.is_err() {
+            println!("Warning: AssetLookupTable not found for mint {}. Skipping.", asset_mint);
+            continue;
+        }
+
+        let lookup_table_acc = lookup_table_acc_result.unwrap();
+        let asset_lookup_table = account_deserialize::<AssetLookupTable>(&lookup_table_acc.data)?;
+
+        // 5. Perform the crucial validation
+        if asset_lookup_table.asset_mint != asset_mint {
+            return Err(anyhow!(
+                "Validation failed! PDA {} does not contain the expected mint {}. Found {} instead.",
+                asset_lookup_table_pda,
+                asset_mint,
+                asset_lookup_table.asset_mint
+            ));
+        }
+        println!("PDA validation successful for mint {}", asset_mint);
+
+        // 6. Calculate the value for this asset and add it to the total
+        let asset_value = calculate_asset_value(&rpc_client, &asset_lookup_table)?;
+        total_value += asset_value;
+    }
+
+    // 7. Fetch USDU total supply for price calculation
+    let usdu_config_acc = rpc_client.get_account(&unitas_config.usdu_config)?;
+    let usdu_config = account_deserialize::<UsduConfig>(&usdu_config_acc.data)?;
+
+    println!("\n--- Final AUM Calculation ---");
+    println!("Total AUM value: {}", total_value);
     println!("Total AUM value (human readable): {}", total_value as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
     println!("USDU total supply: {}", usdu_config.total_supply);
-    println!("USDU total supply (human readable): {}", usdu_config.total_supply as f64 / ten_pow(AUM_VALUE_SCALE_DECIMALS) as f64);
     println!("USDU price: {}", total_value as f64 / usdu_config.total_supply as f64);
     
     Ok(())

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
 use crate::event::OperatorRemoved;
-use crate::state::{Config, Operator};
+use crate::state::{UnitasConfig, Operator};
 use crate::{ADMIN_CONFIG_SEED, OPERATOR_SEED};
 
 #[derive(Accounts)]
@@ -16,7 +16,7 @@ pub struct RemoveOperator<'info> {
         bump,
         constraint = config.is_admin(&admin.key()) @ ErrorCode::InvalidAdmin
     )]
-    pub config: Account<'info, Config>,
+    pub config: Account<'info, UnitasConfig>,
     #[account(
         mut,
         close = admin,

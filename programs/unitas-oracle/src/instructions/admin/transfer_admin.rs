@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
 use crate::event::{AdminTransferCompleted, AdminTransferProposed};
-use crate::state::Config;
+use crate::state::UnitasConfig;
 use crate::ADMIN_CONFIG_SEED;
 
 #[derive(Accounts)]
@@ -19,7 +19,7 @@ pub struct ProposeNewAdmin<'info> {
         bump,
         constraint = config.admin == current_admin.key() @ ErrorCode::OnlyAdminCanProposeNewAdmin,
     )]
-    pub config: Box<Account<'info, Config>>,
+    pub config: Box<Account<'info, UnitasConfig>>,
 
     pub system_program: Program<'info, System>,
 }
@@ -34,7 +34,7 @@ pub struct AcceptAdminTransfer<'info> {
         bump,
         constraint = config.pending_admin == new_admin.key() @ ErrorCode::OnlyProposedAdminCanAccept,
     )]
-    pub config: Box<Account<'info, Config>>,
+    pub config: Box<Account<'info, UnitasConfig>>,
     pub system_program: Program<'info, System>,
 }
 

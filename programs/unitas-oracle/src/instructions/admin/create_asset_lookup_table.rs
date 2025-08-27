@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 
-use crate::state::{AssetLookupTable, Config, MAX_ACCOUNTS_PER_ASSET};
+use crate::state::{AssetLookupTable, UnitasConfig, MAX_ACCOUNTS_PER_ASSET};
 use crate::{ADMIN_CONFIG_SEED, ASSET_LOOKUP_TABLE_SEED};
 use crate::error::ErrorCode;
 
@@ -26,7 +26,7 @@ pub struct CreateAssetLookupTable<'info> {
         bump,
         constraint = config.is_admin(&admin.key()) @ ErrorCode::InvalidAdmin
     )]
-    pub config: Account<'info, Config>,
+    pub config: Account<'info, UnitasConfig>,
     
     pub system_program: Program<'info, System>,
 }

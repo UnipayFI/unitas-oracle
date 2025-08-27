@@ -3,7 +3,7 @@ use anchor_spl::token::Mint;
 
 use crate::error::ErrorCode;
 use crate::event::AccountRemoved;
-use crate::state::{AssetLookupTable, Config, Operator};
+use crate::state::{AssetLookupTable, UnitasConfig, Operator};
 use crate::{ADMIN_CONFIG_SEED, ASSET_LOOKUP_TABLE_SEED};
 
 #[derive(Accounts)]
@@ -26,7 +26,7 @@ pub struct RemoveAccount<'info> {
         seeds = [ADMIN_CONFIG_SEED.as_bytes()],
         bump
     )]
-    pub config: Account<'info, Config>,
+    pub config: Account<'info, UnitasConfig>,
     
     /// CHECK: This is the operator account, it is checked in the instruction
     pub operator: UncheckedAccount<'info>,

@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 #[account]
 #[derive(Default)]
-pub struct Config {
+pub struct UnitasConfig {
     // Auth
     pub admin: Pubkey,
     pub pending_admin: Pubkey,
@@ -15,7 +15,7 @@ pub struct Config {
     pub usdu_config: Pubkey,
 }
 
-impl Config {
+impl UnitasConfig {
     pub const LEN: usize = 8 + // discriminator
         32 + // admin
         32 + // pending_admin

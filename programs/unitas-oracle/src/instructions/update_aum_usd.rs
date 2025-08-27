@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 
 use crate::error::ErrorCode;
 use crate::event::AumUsdUpdated;
-use crate::state::{Config, Operator};
+use crate::state::{UnitasConfig, Operator};
 use crate::ADMIN_CONFIG_SEED;
 
 #[derive(Accounts)]
@@ -14,7 +14,7 @@ pub struct UpdateAumUsd<'info> {
         seeds = [ADMIN_CONFIG_SEED.as_bytes()],
         bump
     )]
-    pub config: Account<'info, Config>,
+    pub config: Account<'info, UnitasConfig>,
     /// CHECK: This is the operator account, it is checked in the instruction
     pub operator: Account<'info, Operator>,
     pub system_program: Program<'info, System>,

@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::event::AdminConfigCreated;
-use crate::state::Config;
+use crate::state::UnitasConfig;
 use crate::ADMIN_CONFIG_SEED;
 
 #[derive(Accounts)]
@@ -11,17 +11,17 @@ pub struct InitAdminConfig<'info> {
     #[account(
         init,
         payer = admin,
-        space = Config::LEN,
+        space = UnitasConfig::LEN,
         seeds = [ADMIN_CONFIG_SEED.as_bytes()],
         bump
     )]
-    pub config: Account<'info, Config>,
+    pub config: Account<'info, UnitasConfig>,
     pub system_program: Program<'info, System>,
 }
 
 pub fn process_init_admin_config(ctx: Context<InitAdminConfig>, usdu_config: Pubkey) -> Result<()> {
     let config = &mut ctx.accounts.config;
-    config.set_inner(Config {
+    config.set_inner(UnitasConfig {
         admin: ctx.accounts.admin.key(),
         pending_admin: Pubkey::default(),
         aum_usd: 0,
