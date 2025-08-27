@@ -2,10 +2,11 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 
 use crate::error::ErrorCode;
-use crate::state::{AssetLookupTable, UnitasConfig, MAX_ACCOUNTS_PER_ASSET};
+use crate::state::{AssetLookupTable, UnitasConfig};
 use crate::{ADMIN_CONFIG_SEED, ASSET_LOOKUP_TABLE_SEED};
 
 #[derive(Accounts)]
+#[instruction(args: CreateAssetLookupTableArgs)]
 pub struct CreateAssetLookupTable<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -17,7 +18,7 @@ pub struct CreateAssetLookupTable<'info> {
         seeds = [ASSET_LOOKUP_TABLE_SEED.as_bytes(), asset_mint.key().as_ref()],
         bump
     )]
-    pub asset_lookup_table: Account<'info, AssetLookupTable>,
+    pub asset_lookup_table: AccountLoader<'info, AssetLookupTable>,
 
     pub asset_mint: Account<'info, Mint>,
 
@@ -41,12 +42,11 @@ pub fn process_create_asset_lookup_table(
     ctx: Context<CreateAssetLookupTable>,
     args: CreateAssetLookupTableArgs,
 ) -> Result<()> {
-    ctx.accounts.asset_lookup_table.set_inner(AssetLookupTable {
-        asset_mint: ctx.accounts.asset_mint.key(),
-        oracle_account: args.oracle_account,
-        decimals: args.decimals,
-        token_account_owners: Vec::with_capacity(MAX_ACCOUNTS_PER_ASSET),
-    });
+    let mut asset_lookup_table = ctx.accounts.asset_lookup_table.load_init()?;
+    asset_lookup_table.asset_mint = ctx.accounts.asset_mint.key();
+    asset_lookup_table.oracle_account = args.oracle_account;
+    asset_lookup_table.decimals = args.decimals;
+    asset_lookup_table.token_account_owners_len = 0;
 
     Ok(())
 }

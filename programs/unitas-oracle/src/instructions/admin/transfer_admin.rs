@@ -70,7 +70,7 @@ pub fn process_accept_admin_transfer(ctx: Context<AcceptAdminTransfer>) -> Resul
     config.pending_admin = Pubkey::default();
 
     emit!(AdminTransferCompleted {
-        previous_admin: previous_admin,
+        previous_admin,
         new_admin: ctx.accounts.new_admin.key(),
     });
 

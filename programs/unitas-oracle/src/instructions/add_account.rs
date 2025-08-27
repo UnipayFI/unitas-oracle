@@ -17,7 +17,7 @@ pub struct AddAccount<'info> {
         seeds = [ASSET_LOOKUP_TABLE_SEED.as_bytes(), asset_mint.key().as_ref()],
         bump
     )]
-    pub asset_lookup_table: Account<'info, AssetLookupTable>,
+    pub asset_lookup_table: AccountLoader<'info, AssetLookupTable>,
 
     pub asset_mint: Account<'info, Mint>,
 
@@ -48,9 +48,10 @@ pub fn process_add_account(ctx: Context<AddAccount>, account: Pubkey) -> Result<
             ErrorCode::InvalidAdmin
         );
     }
-    ctx.accounts
-        .asset_lookup_table
-        .add_token_account_owner(account)?;
+
+    let mut asset_lookup_table = ctx.accounts.asset_lookup_table.load_mut()?;
+    asset_lookup_table.add_token_account_owner(account)?;
+
     emit!(AccountAdded {
         account,
         lookup_table: ctx.accounts.asset_lookup_table.key()

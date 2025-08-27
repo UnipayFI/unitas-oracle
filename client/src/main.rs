@@ -1,6 +1,6 @@
 use crate::constants::{ADMIN_CONFIG_SEED, ASSET_LOOKUP_TABLE_SEED, JLP_MINT, USDC_MINT};
 use anchor_client::solana_sdk::{commitment_config::CommitmentConfig, pubkey::Pubkey};
-use anchor_lang::{solana_program, AccountDeserialize};
+use anchor_lang::AccountDeserialize;
 use anchor_spl::token::TokenAccount;
 use anyhow::{anyhow, Result};
 use borsh::BorshDeserialize;
@@ -109,8 +109,8 @@ fn calculate_asset_value(
         .map_err(|e| anyhow!("Failed to deserialize price account: {:?}", e))?;
 
     let price = price_account.price_message.price;
-    let price_value: u128 = price.abs() as u128;
-    let price_decimals: u8 = price_account.price_message.exponent.abs() as u8;
+    let price_value: u128 = price.unsigned_abs() as u128;
+    let price_decimals: u8 = price_account.price_message.exponent.unsigned_abs() as u8;
     let token_decimals = asset_lookup_table.decimals;
 
     println!(
